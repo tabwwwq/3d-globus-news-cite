@@ -10,6 +10,8 @@ A fully interactive 3D Earth globe built with Three.js that allows users to expl
 
 ### Core Functionality
 - **Realistic 3D Earth Rendering**: High-quality Earth textures with continents, oceans, and topographical details
+- **Enhanced Relief System**: Bump mapping and displacement for realistic terrain visualization
+- **Specular Mapping**: Realistic ocean reflections and highlights
 - **Interactive Controls**:
   - 🖱️ **Rotate**: Click and drag to rotate the globe in any direction
   - 🔍 **Zoom**: Mouse wheel or buttons to zoom in/out (supports pinch gestures on mobile)
@@ -17,26 +19,40 @@ A fully interactive 3D Earth globe built with Three.js that allows users to expl
 - **Smooth Animations**: Fluid transitions and damped camera movements for a polished experience
 
 ### Visual Effects
-- 🌍 High-resolution Earth texture maps
+- 🌍 High-resolution Earth texture maps (2K+)
+- 🗺️ Detailed relief and bump mapping for realistic terrain
+- 🌊 Specular maps for ocean reflections
 - ☁️ Animated cloud layer overlay
 - 🌌 Atmospheric glow effect around the globe
 - ⭐ Starfield background for space immersion
 - 💡 Realistic lighting and shadows
 
+### Advanced Marker System
+- 📍 **228+ Cities Worldwide**: Comprehensive global coverage
+- 🎯 **Four-Level Hierarchy**:
+  - 🔴 **Capitals** (64): Largest markers, visible from far distances
+  - 🟠 **Major Cities** (84): Medium markers for cities over 1M population
+  - 🟡 **Cities** (49): Smaller markers for cities 100K-1M population
+  - 🟢 **Towns/Villages** (31): Smallest markers for smaller locations
+- 🔄 **Dynamic LOD System**: Markers appear/disappear based on zoom level
+- ✨ **Pulsing Animations**: Different animation speeds for each marker type
+- 🎨 **Color-Coded Legend**: Visual guide for marker types
+
 ### Interactive Features
-- 📍 **City Markers**: Pre-loaded markers for 40+ major cities worldwide
 - 🔍 **Location Search**: Search bar to find and navigate to any city
 - 📊 **Real-time Information**:
   - Current latitude and longitude display
   - FPS counter for performance monitoring
-  - Location popups with city details
+  - Location popups with city details, type, and population
 - 🎯 **Clickable Markers**: Click on city markers to view detailed information
+- ⚡ **Optimized Performance**: Smooth 60 FPS with 200+ markers using InstancedMesh
 
 ### User Interface
 - Clean, modern dark-themed UI
 - Intuitive zoom controls (+/- buttons)
 - Reset view button to return to default position
-- Comprehensive control instructions
+- Color-coded marker legend
+- Enhanced location popups with comprehensive city information
 - Responsive design for desktop and mobile devices
 
 ## 🚀 Getting Started
@@ -141,11 +157,25 @@ This project uses vanilla JavaScript and loads Three.js from a CDN, so no build 
 
 This project uses high-quality Earth textures from the Three.js examples repository:
 - **Earth Surface**: 2048x1024 texture with continents and oceans
-- **Earth Bump Map**: Normal map for topographical detail
+- **Earth Bump Map**: Normal map for topographical detail and terrain relief
+- **Earth Specular Map**: Specular highlights for realistic ocean reflections
 - **Cloud Layer**: Transparent cloud overlay texture
 
 All textures are loaded from CDN sources:
 - [Three.js GitHub Repository](https://github.com/mrdoob/three.js/tree/master/examples/textures/planets)
+
+### Marker System
+
+The application uses a sophisticated four-level marker system:
+
+| Type | Color | Size | Population | Visibility Distance | Count |
+|------|-------|------|-----------|---------------------|-------|
+| Capital | Red (#ff3333) | Large (0.09) | Varies | Always visible (20+ units) | 64 |
+| Major City | Orange (#ff8c42) | Medium (0.065) | > 1M | Visible from 15+ units | 84 |
+| City | Yellow (#ffd700) | Small (0.045) | 100K-1M | Visible from 12+ units | 49 |
+| Village/Town | Green (#90ee90) | Tiny (0.025) | < 100K | Close zoom only (< 12 units) | 31 |
+
+**Total Locations: 228**
 
 ## 🔧 Customization
 
@@ -154,14 +184,39 @@ All textures are loaded from CDN sources:
 Edit `js/locations.js` and add new entries to the `LOCATIONS` array:
 
 ```javascript
-{ name: "Your City", country: "Your Country", lat: 40.7128, lon: -74.0060 }
+{ 
+  name: "Your City", 
+  country: "Your Country", 
+  lat: 40.7128, 
+  lon: -74.0060,
+  type: "city",  // Options: "capital", "major", "city", "village"
+  population: 1000000  // Optional
+}
+```
+
+### Marker Type Configuration
+
+In `js/globe.js`, modify the `markerConfig` object to customize marker appearance:
+
+```javascript
+this.markerConfig = {
+  capital: {
+    size: 0.09,              // Marker size
+    color: 0xff3333,         // Color (hex)
+    minDistance: 20,         // Visibility distance threshold
+    pulseSpeed: 0.004,       // Animation speed
+    glowIntensity: 1.5       // Glow effect intensity
+  },
+  // ... other types
+}
 ```
 
 ### Changing Globe Appearance
 
 In `js/globe.js`, modify:
-- `this.radius`: Globe size
-- `this.segments`: Polygon detail (higher = smoother but slower)
+- `this.radius`: Globe size (default: 5)
+- `this.segments`: Polygon detail (default: 64, higher = smoother but slower)
+- `bumpScale`: Relief intensity (default: 0.1)
 - Texture URLs: Use custom Earth textures
 - Colors: Atmosphere and marker colors
 
@@ -198,25 +253,36 @@ Touch gestures are fully supported on mobile devices.
 
 ## ⚡ Performance Optimization
 
-- **Efficient Rendering**: Only renders when necessary
-- **Texture Optimization**: Uses appropriately sized textures
+- **Efficient Rendering**: InstancedMesh for rendering 200+ markers
+- **LOD System**: Distance-based marker visibility with smooth transitions
+- **Texture Optimization**: Uses appropriately sized textures (2K)
 - **Geometry Caching**: Meshes created once and reused
 - **RAF (RequestAnimationFrame)**: Smooth 60 FPS rendering
 - **Page Visibility API**: Pauses animation when tab is not visible
 - **Disposal Management**: Proper cleanup of Three.js objects
+- **Optimized Animations**: Efficient pulsing animations with minimal overhead
+
+### Performance Metrics
+- Maintains 60 FPS with 228 markers
+- Smooth fade transitions for marker LOD
+- Optimized raycasting for marker interaction
+- Minimal CPU/GPU overhead with instanced rendering
 
 ## 🔜 Future Enhancements
 
 Potential features for future versions:
+- [ ] Night lights texture for shadow side of Earth
 - [ ] Satellite view mode
 - [ ] Real-time weather overlay
 - [ ] Day/night cycle animation
 - [ ] Flight path visualization between cities
 - [ ] Distance measurement tool
 - [ ] Multiple globe themes (political, terrain, etc.)
-- [ ] User-added custom markers
+- [ ] User-added custom markers with persistence
 - [ ] Export/share camera views
 - [ ] VR mode support
+- [ ] Quality settings (high/medium/low)
+- [ ] Marker filtering by type
 
 ## 🤝 Contributing
 

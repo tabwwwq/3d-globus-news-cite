@@ -44,8 +44,18 @@ function init() {
  */
 function addCityMarkers() {
     LOCATIONS.forEach(location => {
-        globe.addMarker(location.lat, location.lon, location.name, location.country);
+        globe.addMarker(
+            location.lat, 
+            location.lon, 
+            location.name, 
+            location.country, 
+            location.type || 'city',
+            location.population
+        );
     });
+    
+    // Initialize instanced meshes after all markers are added
+    globe.initializeInstancedMarkers();
 }
 
 /**
@@ -99,9 +109,9 @@ function setupUIListeners() {
     // Marker click detection
     const container = document.getElementById('container');
     container.addEventListener('click', (e) => {
-        const marker = globe.getIntersectedMarker(e.clientX, e.clientY);
-        if (marker) {
-            showLocationPopup(marker.userData);
+        const markerData = globe.getIntersectedMarker(e.clientX, e.clientY);
+        if (markerData) {
+            showLocationPopup(markerData);
         }
     });
     
@@ -182,7 +192,30 @@ function showLocationPopup(location) {
     const coords = document.getElementById('popup-coords');
     
     title.textContent = location.name;
-    country.textContent = location.country;
+    
+    // Add type and population info
+    let countryText = location.country;
+    if (location.type) {
+        const typeLabels = {
+            capital: 'Capital',
+            major: 'Major City',
+            city: 'City',
+            village: 'Town/Village'
+        };
+        countryText += ` • ${typeLabels[location.type]}`;
+    }
+    if (location.population) {
+        const popMillions = location.population / 1000000;
+        const popThousands = location.population / 1000;
+        
+        if (location.population >= 1000000) {
+            countryText += ` • ${popMillions.toFixed(1)}M people`;
+        } else {
+            countryText += ` • ${Math.round(popThousands)}K people`;
+        }
+    }
+    
+    country.textContent = countryText;
     coords.textContent = `${location.lat.toFixed(4)}°, ${location.lon.toFixed(4)}°`;
     
     popup.classList.add('visible');
@@ -251,6 +284,10 @@ function animate() {
     
     // Animate globe rotation
     globe.animate();
+    
+    // Update marker LOD based on camera distance
+    const cameraDistance = globe.camera.position.z;
+    globe.updateMarkerLOD(cameraDistance);
     
     // Render scene
     globe.render();
