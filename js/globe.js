@@ -14,12 +14,45 @@ class Globe {
         this.atmosphere = null;
         this.stars = null;
         this.markers = [];
+        this.markerInstances = {}; // Store instanced meshes for each marker type
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
         
         // Globe settings
         this.radius = 5;
         this.segments = 64;
+        
+        // Marker type configurations
+        this.markerConfig = {
+            capital: {
+                size: 0.09,
+                color: 0xff3333,
+                minDistance: 20,
+                pulseSpeed: 0.004,
+                glowIntensity: 1.5
+            },
+            major: {
+                size: 0.065,
+                color: 0xff8c42,
+                minDistance: 15,
+                pulseSpeed: 0.003,
+                glowIntensity: 1.2
+            },
+            city: {
+                size: 0.045,
+                color: 0xffd700,
+                minDistance: 12,
+                pulseSpeed: 0.0025,
+                glowIntensity: 1.0
+            },
+            village: {
+                size: 0.025,
+                color: 0x90ee90,
+                minDistance: 0,
+                pulseSpeed: 0.002,
+                glowIntensity: 0.8
+            }
+        };
         
         this.init();
     }
@@ -92,26 +125,38 @@ class Globe {
         
         // Use a high-quality Earth texture from a CDN
         const textureLoader = new THREE.TextureLoader();
+        
+        // Day texture
         const earthTexture = textureLoader.load(
             'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg',
             () => {
-                // Texture loaded successfully
+                this.updateLoadingProgress(25);
+            }
+        );
+        
+        // Normal/Bump map for relief
+        const bumpTexture = textureLoader.load(
+            'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg',
+            () => {
                 this.updateLoadingProgress(40);
             }
         );
         
-        const bumpTexture = textureLoader.load(
-            'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg',
+        // Specular map for ocean reflections
+        const specularTexture = textureLoader.load(
+            'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg',
             () => {
-                this.updateLoadingProgress(60);
+                this.updateLoadingProgress(55);
             }
         );
         
         const material = new THREE.MeshPhongMaterial({
             map: earthTexture,
             bumpMap: bumpTexture,
-            bumpScale: 0.05,
-            shininess: 10,
+            bumpScale: 0.1,
+            specularMap: specularTexture,
+            specular: new THREE.Color(0x333333),
+            shininess: 15,
         });
         
         this.earth = new THREE.Mesh(geometry, material);
@@ -128,7 +173,7 @@ class Globe {
         const cloudTexture = textureLoader.load(
             'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png',
             () => {
-                this.updateLoadingProgress(80);
+                this.updateLoadingProgress(70);
             }
         );
         
@@ -137,6 +182,7 @@ class Globe {
             transparent: true,
             opacity: 0.4,
             side: THREE.DoubleSide,
+            depthWrite: false,
         });
         
         this.clouds = new THREE.Mesh(geometry, material);
@@ -207,38 +253,144 @@ class Globe {
     /**
      * Add a marker at a specific location
      */
-    addMarker(lat, lon, name, country) {
+    addMarker(lat, lon, name, country, type = 'city', population = null) {
         const position = latLonToVector3(lat, lon, this.radius);
         
-        // Create marker geometry (small sphere)
-        const geometry = new THREE.SphereGeometry(0.05, 16, 16);
-        const material = new THREE.MeshBasicMaterial({ 
-            color: 0xff6b6b,
-            transparent: true,
-            opacity: 0.9,
+        // Create marker data object
+        const markerData = {
+            position: new THREE.Vector3(position.x, position.y, position.z),
+            userData: { name, country, lat, lon, type, population },
+            type: type,
+            visible: true,
+            opacity: 1.0
+        };
+        
+        this.markers.push(markerData);
+        return markerData;
+    }
+    
+    /**
+     * Initialize instanced meshes for all marker types
+     */
+    initializeInstancedMarkers() {
+        // Group markers by type
+        const markersByType = {
+            capital: [],
+            major: [],
+            city: [],
+            village: []
+        };
+        
+        this.markers.forEach(marker => {
+            if (markersByType[marker.type]) {
+                markersByType[marker.type].push(marker);
+            }
         });
         
-        const marker = new THREE.Mesh(geometry, material);
-        marker.position.set(position.x, position.y, position.z);
-        
-        // Store location data with marker
-        marker.userData = { name, country, lat, lon };
-        
-        this.scene.add(marker);
-        this.markers.push(marker);
-        
-        return marker;
+        // Create instanced mesh for each type
+        Object.keys(markersByType).forEach(type => {
+            const markers = markersByType[type];
+            if (markers.length === 0) return;
+            
+            const config = this.markerConfig[type];
+            const geometry = new THREE.SphereGeometry(config.size, 16, 16);
+            const material = new THREE.MeshBasicMaterial({
+                color: config.color,
+                transparent: true,
+                opacity: 0.9,
+            });
+            
+            const instancedMesh = new THREE.InstancedMesh(
+                geometry,
+                material,
+                markers.length
+            );
+            
+            // Set initial positions
+            const matrix = new THREE.Matrix4();
+            markers.forEach((marker, i) => {
+                matrix.setPosition(marker.position);
+                instancedMesh.setMatrixAt(i, matrix);
+                instancedMesh.setColorAt(i, new THREE.Color(config.color));
+            });
+            
+            instancedMesh.instanceMatrix.needsUpdate = true;
+            if (instancedMesh.instanceColor) {
+                instancedMesh.instanceColor.needsUpdate = true;
+            }
+            
+            this.scene.add(instancedMesh);
+            this.markerInstances[type] = {
+                mesh: instancedMesh,
+                markers: markers,
+                geometry: geometry,
+                material: material
+            };
+        });
+    }
+    
+    /**
+     * Update marker visibility based on camera distance (LOD system)
+     */
+    updateMarkerLOD(cameraDistance) {
+        Object.keys(this.markerInstances).forEach(type => {
+            const instance = this.markerInstances[type];
+            const config = this.markerConfig[type];
+            const markers = instance.markers;
+            const mesh = instance.mesh;
+            
+            const matrix = new THREE.Matrix4();
+            const scale = new THREE.Vector3();
+            
+            markers.forEach((marker, i) => {
+                // Determine if marker should be visible based on distance
+                let shouldBeVisible = cameraDistance <= config.minDistance || config.minDistance === 0;
+                
+                // For villages, only show when very close
+                if (type === 'village') {
+                    shouldBeVisible = cameraDistance < 12;
+                }
+                
+                // Calculate target opacity with smooth fade
+                const targetOpacity = shouldBeVisible ? 1.0 : 0.0;
+                marker.opacity += (targetOpacity - marker.opacity) * 0.1;
+                
+                // Get current matrix
+                mesh.getMatrixAt(i, matrix);
+                matrix.decompose(new THREE.Vector3(), new THREE.Quaternion(), scale);
+                
+                // Calculate pulsing scale
+                const pulseScale = 1 + Math.sin(Date.now() * config.pulseSpeed + i) * 0.2;
+                const finalScale = marker.opacity * pulseScale;
+                
+                // Update scale based on opacity
+                scale.set(finalScale, finalScale, finalScale);
+                matrix.setPosition(marker.position);
+                matrix.scale(scale);
+                
+                mesh.setMatrixAt(i, matrix);
+            });
+            
+            mesh.instanceMatrix.needsUpdate = true;
+            
+            // Update overall visibility
+            mesh.visible = markers.some(m => m.opacity > 0.01);
+        });
     }
     
     /**
      * Remove all markers from the scene
      */
     clearMarkers() {
-        this.markers.forEach(marker => {
-            this.scene.remove(marker);
-            marker.geometry.dispose();
-            marker.material.dispose();
+        // Dispose instanced meshes
+        Object.keys(this.markerInstances).forEach(type => {
+            const instance = this.markerInstances[type];
+            this.scene.remove(instance.mesh);
+            instance.geometry.dispose();
+            instance.material.dispose();
         });
+        
+        this.markerInstances = {};
         this.markers = [];
     }
     
@@ -247,17 +399,11 @@ class Globe {
      */
     animate() {
         if (this.earth) {
-            this.earth.rotation.y += 0.001;
+            this.earth.rotation.y += 0.0005;
         }
         if (this.clouds) {
-            this.clouds.rotation.y += 0.0012;
+            this.clouds.rotation.y += 0.0007;
         }
-        
-        // Make markers pulse
-        this.markers.forEach((marker, index) => {
-            const scale = 1 + Math.sin(Date.now() * 0.003 + index) * 0.3;
-            marker.scale.set(scale, scale, scale);
-        });
     }
     
     /**
@@ -294,8 +440,27 @@ class Globe {
         this.mouse.y = -(mouseY / window.innerHeight) * 2 + 1;
         
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        const intersects = this.raycaster.intersectObjects(this.markers);
         
-        return intersects.length > 0 ? intersects[0].object : null;
+        // Check intersections with all instanced meshes
+        const allInstancedMeshes = Object.values(this.markerInstances).map(inst => inst.mesh);
+        const intersects = this.raycaster.intersectObjects(allInstancedMeshes);
+        
+        if (intersects.length > 0) {
+            const intersect = intersects[0];
+            const instanceId = intersect.instanceId;
+            
+            // Find which type and get marker data
+            for (const type in this.markerInstances) {
+                const instance = this.markerInstances[type];
+                if (instance.mesh === intersect.object) {
+                    const marker = instance.markers[instanceId];
+                    if (marker && marker.opacity > 0.5) {
+                        return marker.userData;
+                    }
+                }
+            }
+        }
+        
+        return null;
     }
 }
