@@ -15,6 +15,7 @@ class GlobeControls {
         this.zoomSpeed = 1.2;
         this.panSpeed = 0.5;
         this.dampingFactor = 0.05;
+        this.TOUCH_ZOOM_FACTOR = 1.01; // Sensitivity for pinch zoom
         
         // Camera constraints
         this.minDistance = 8;
@@ -193,9 +194,9 @@ class GlobeControls {
             this.touchDistance = distance;
             
             if (delta > 0) {
-                this.targetZoom *= 1.01;
+                this.targetZoom *= this.TOUCH_ZOOM_FACTOR;
             } else {
-                this.targetZoom /= 1.01;
+                this.targetZoom /= this.TOUCH_ZOOM_FACTOR;
             }
             
             this.targetZoom = Math.max(this.minDistance, Math.min(this.maxDistance, this.targetZoom));

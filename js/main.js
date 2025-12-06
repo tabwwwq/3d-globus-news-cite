@@ -276,10 +276,13 @@ if (document.readyState === 'loading') {
 // Handle page visibility for performance
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-        if (animationId) {
+        if (animationId !== null) {
             cancelAnimationFrame(animationId);
+            animationId = null;
         }
     } else {
-        animate();
+        if (animationId === null) {
+            animate();
+        }
     }
 });

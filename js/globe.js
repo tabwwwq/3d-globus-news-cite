@@ -77,8 +77,10 @@ class Globe {
         this.scene.add(ambientLight);
         
         // Directional light to simulate the sun
+        // Positioned at an angle to create realistic day/night lighting
+        const SUN_LIGHT_POSITION = { x: 5, y: 3, z: 5 };
         const sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
-        sunLight.position.set(5, 3, 5);
+        sunLight.position.set(SUN_LIGHT_POSITION.x, SUN_LIGHT_POSITION.y, SUN_LIGHT_POSITION.z);
         this.scene.add(sunLight);
     }
     
@@ -175,6 +177,7 @@ class Globe {
      * Create stars background
      */
     createStars() {
+        const STAR_COUNT = 10000;
         const starsGeometry = new THREE.BufferGeometry();
         const starsMaterial = new THREE.PointsMaterial({
             color: 0xffffff,
@@ -183,7 +186,7 @@ class Globe {
         });
         
         const starsVertices = [];
-        for (let i = 0; i < 10000; i++) {
+        for (let i = 0; i < STAR_COUNT; i++) {
             const x = (Math.random() - 0.5) * 2000;
             const y = (Math.random() - 0.5) * 2000;
             const z = (Math.random() - 0.5) * 2000;
