@@ -22,6 +22,9 @@ class Globe {
         this.radius = 5;
         this.segments = 64;
         
+        // Constants
+        this.MARKER_OPACITY_THRESHOLD = 0.5; // Threshold for marker interaction
+        
         // Marker type configurations
         this.markerConfig = {
             capital: {
@@ -454,7 +457,7 @@ class Globe {
                 const instance = this.markerInstances[type];
                 if (instance.mesh === intersect.object) {
                     const marker = instance.markers[instanceId];
-                    if (marker && marker.opacity > 0.5) {
+                    if (marker && marker.opacity > this.MARKER_OPACITY_THRESHOLD) {
                         return marker.userData;
                     }
                 }

@@ -67,15 +67,17 @@ const LOCATIONS = [
     
     // Africa
     { name: "Cairo", country: "Egypt", lat: 30.0444, lon: 31.2357, type: "capital", population: 20900000 },
-    { name: "Lagos", country: "Nigeria", lat: 6.5244, lon: 3.3792, type: "capital", population: 15000000 },
-    { name: "Johannesburg", country: "South Africa", lat: -26.2041, lon: 28.0473, type: "capital", population: 5700000 },
+    { name: "Lagos", country: "Nigeria", lat: 6.5244, lon: 3.3792, type: "major", population: 15000000 },
+    { name: "Johannesburg", country: "South Africa", lat: -26.2041, lon: 28.0473, type: "major", population: 5700000 },
     { name: "Nairobi", country: "Kenya", lat: -1.2921, lon: 36.8219, type: "capital", population: 4700000 },
     { name: "Addis Ababa", country: "Ethiopia", lat: 9.0320, lon: 38.7469, type: "capital", population: 5000000 },
     { name: "Accra", country: "Ghana", lat: 5.6037, lon: -0.1870, type: "capital", population: 2500000 },
     { name: "Dar es Salaam", country: "Tanzania", lat: -6.7924, lon: 39.2083, type: "capital", population: 7400000 },
     { name: "Kinshasa", country: "DR Congo", lat: -4.4419, lon: 15.2663, type: "capital", population: 14300000 },
     { name: "Algiers", country: "Algeria", lat: 36.7538, lon: 3.0588, type: "capital", population: 2900000 },
-    { name: "Casablanca", country: "Morocco", lat: 33.5731, lon: -7.5898, type: "capital", population: 3800000 },
+    { name: "Rabat", country: "Morocco", lat: 34.0209, lon: -6.8416, type: "capital", population: 580000 },
+    { name: "Abuja", country: "Nigeria", lat: 9.0579, lon: 7.4951, type: "capital", population: 3000000 },
+    { name: "Pretoria", country: "South Africa", lat: -25.7479, lon: 28.2293, type: "capital", population: 2500000 },
     
     // Oceania
     { name: "Canberra", country: "Australia", lat: -35.2809, lon: 149.1300, type: "capital", population: 460000 },
@@ -167,6 +169,7 @@ const LOCATIONS = [
     { name: "Abidjan", country: "Ivory Coast", lat: 5.3600, lon: -4.0083, type: "major", population: 5500000 },
     { name: "Khartoum", country: "Sudan", lat: 15.5007, lon: 32.5599, type: "major", population: 5200000 },
     { name: "Tunis", country: "Tunisia", lat: 36.8065, lon: 10.1815, type: "major", population: 2400000 },
+    { name: "Casablanca", country: "Morocco", lat: 33.5731, lon: -7.5898, type: "major", population: 3800000 },
     
     // Oceania
     { name: "Sydney", country: "Australia", lat: -33.8688, lon: 151.2093, type: "major", population: 5300000 },

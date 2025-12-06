@@ -205,11 +205,13 @@ function showLocationPopup(location) {
         countryText += ` • ${typeLabels[location.type]}`;
     }
     if (location.population) {
-        const popFormatted = (location.population / 1000000).toFixed(1);
+        const popMillions = location.population / 1000000;
+        const popThousands = location.population / 1000;
+        
         if (location.population >= 1000000) {
-            countryText += ` • ${popFormatted}M people`;
+            countryText += ` • ${popMillions.toFixed(1)}M people`;
         } else {
-            countryText += ` • ${Math.round(location.population / 1000)}K people`;
+            countryText += ` • ${Math.round(popThousands)}K people`;
         }
     }
     
