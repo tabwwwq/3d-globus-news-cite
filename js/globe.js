@@ -23,12 +23,12 @@ class Globe {
             village: { color: 0x90ee90, size: 0.008 }
         };
         
-        // Store base sizes for scaling
+        // Store base sizes for scaling (derived from markerConfig)
         this.baseMarkerSizes = {
-            capital: 0.015,
-            major: 0.012,
-            city: 0.010,
-            village: 0.008
+            capital: this.markerConfig.capital.size,
+            major: this.markerConfig.major.size,
+            city: this.markerConfig.city.size,
+            village: this.markerConfig.village.size
         };
         
         // Texture quality management
@@ -36,6 +36,11 @@ class Globe {
         this.highQualityTexture = null;
         this.currentTextureQuality = 'low';
         this.isHighQualityLoaded = false;
+        
+        // Scaling and LOD configuration
+        this.minScaleFactor = 0.4;  // Scale at closest zoom
+        this.scaleRange = 0.6;       // Scale range (max - min)
+        this.textureQualityThreshold = 3;  // Distance threshold for high quality texture
         
         this.init();
     }
@@ -307,10 +312,10 @@ class Globe {
         const maxDistance = 6;
         
         // Calculate scale factor: closer camera = smaller markers
-        // At minDistance (1.2), scale should be ~0.4
+        // At minDistance (1.2), scale should be minScaleFactor (0.4)
         // At maxDistance (6), scale should be 1.0
         const normalizedDistance = (cameraDistance - minDistance) / (maxDistance - minDistance);
-        const scaleFactor = 0.4 + (normalizedDistance * 0.6);
+        const scaleFactor = this.minScaleFactor + (normalizedDistance * this.scaleRange);
         
         // Update all marker meshes
         this.markerMeshes.forEach((markerMesh) => {
@@ -329,8 +334,7 @@ class Globe {
      * @param {number} cameraDistance - Current camera distance from globe
      */
     updateTextureQuality(cameraDistance) {
-        const qualityThreshold = 3;
-        const shouldUseHighQuality = cameraDistance <= qualityThreshold;
+        const shouldUseHighQuality = cameraDistance <= this.textureQualityThreshold;
         
         if (shouldUseHighQuality && this.currentTextureQuality === 'low') {
             // Switch to high quality
@@ -340,7 +344,7 @@ class Globe {
                 this.currentTextureQuality = 'high';
             } else if (!this.isHighQualityLoaded) {
                 // Load high quality texture
-                this.loadHighQualityTexture(qualityThreshold);
+                this.loadHighQualityTexture();
             }
         } else if (!shouldUseHighQuality && this.currentTextureQuality === 'high') {
             // Switch back to low quality
@@ -354,9 +358,8 @@ class Globe {
     
     /**
      * Load high quality texture on demand
-     * @param {number} qualityThreshold - Distance threshold for high quality texture
      */
-    loadHighQualityTexture(qualityThreshold) {
+    loadHighQualityTexture() {
         if (this.isHighQualityLoaded) return;
         
         const textureLoader = new THREE.TextureLoader();
@@ -367,7 +370,7 @@ class Globe {
                 this.highQualityTexture = texture;
                 this.isHighQualityLoaded = true;  // Mark as loaded on success
                 // If we're still close enough, apply it
-                if (this.camera.position.length() <= qualityThreshold) {
+                if (this.camera.position.length() <= this.textureQualityThreshold) {
                     this.globe.material.map = texture;
                     this.globe.material.needsUpdate = true;
                     this.currentTextureQuality = 'high';
@@ -377,7 +380,7 @@ class Globe {
             undefined,
             (error) => {
                 console.warn('High quality texture failed to load');
-                this.isHighQualityLoaded = false;
+                // Don't reset isHighQualityLoaded to prevent infinite retry attempts
             }
         );
     }
