@@ -70,8 +70,8 @@ class Globe {
     createGlobe() {
         const geometry = new THREE.SphereGeometry(1, 64, 64);
         
-        // Use a simple material with color instead of texture for now
-        // This ensures the globe works without external dependencies
+        // Use a simple material with solid color
+        // Earth texture can be added later if needed
         const material = new THREE.MeshPhongMaterial({
             color: 0x2233aa,
             emissive: 0x112244,
@@ -82,7 +82,6 @@ class Globe {
         this.globe = new THREE.Mesh(geometry, material);
         this.globeGroup.add(this.globe);  // Add to group instead of scene
         
-        // Skip clouds for simpler implementation
         this.updateLoadingProgress(75);
     }
     
