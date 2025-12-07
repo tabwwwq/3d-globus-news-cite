@@ -23,6 +23,20 @@ class Globe {
             village: { color: 0x90ee90, size: 0.008 }
         };
         
+        // Store base sizes for scaling
+        this.baseMarkerSizes = {
+            capital: 0.015,
+            major: 0.012,
+            city: 0.010,
+            village: 0.008
+        };
+        
+        // Texture quality management
+        this.lowQualityTexture = null;
+        this.highQualityTexture = null;
+        this.currentTextureQuality = 'low';
+        this.isHighQualityLoaded = false;
+        
         this.init();
     }
     
@@ -88,6 +102,7 @@ class Globe {
                 material.color = new THREE.Color(0xffffff);
                 material.emissive = new THREE.Color(0x000000);
                 material.needsUpdate = true;
+                this.lowQualityTexture = texture;  // Store low quality texture
             },
             undefined,
             (error) => {
@@ -281,5 +296,93 @@ class Globe {
     
     getZoom() {
         return this.camera.position.length();
+    }
+    
+    /**
+     * Update marker scales based on camera distance
+     * @param {number} cameraDistance - Current camera distance from globe
+     */
+    updateMarkerScales(cameraDistance) {
+        const minDistance = 1.2;
+        const maxDistance = 6;
+        
+        // Calculate scale factor: closer camera = smaller markers
+        // At minDistance (1.2), scale should be ~0.4
+        // At maxDistance (6), scale should be 1.0
+        const normalizedDistance = (cameraDistance - minDistance) / (maxDistance - minDistance);
+        const scaleFactor = 0.4 + (normalizedDistance * 0.6);
+        
+        // Update all marker meshes
+        this.markerMeshes.forEach((markerMesh) => {
+            const type = markerMesh.userData.type || 'city';
+            const baseSize = this.baseMarkerSizes[type];
+            const newSize = baseSize * scaleFactor;
+            
+            // Update the geometry scale
+            const scale = newSize / baseSize;
+            markerMesh.scale.set(scale, scale, scale);
+        });
+        
+        // Update config for new markers
+        Object.keys(this.markerConfig).forEach(type => {
+            this.markerConfig[type].size = this.baseMarkerSizes[type] * scaleFactor;
+        });
+    }
+    
+    /**
+     * Update texture quality based on camera distance
+     * @param {number} cameraDistance - Current camera distance from globe
+     */
+    updateTextureQuality(cameraDistance) {
+        const qualityThreshold = 3;
+        const shouldUseHighQuality = cameraDistance <= qualityThreshold;
+        
+        if (shouldUseHighQuality && this.currentTextureQuality === 'low') {
+            // Switch to high quality
+            if (this.isHighQualityLoaded && this.highQualityTexture) {
+                this.globe.material.map = this.highQualityTexture;
+                this.globe.material.needsUpdate = true;
+                this.currentTextureQuality = 'high';
+            } else if (!this.isHighQualityLoaded) {
+                // Load high quality texture
+                this.loadHighQualityTexture();
+            }
+        } else if (!shouldUseHighQuality && this.currentTextureQuality === 'high') {
+            // Switch back to low quality
+            if (this.lowQualityTexture) {
+                this.globe.material.map = this.lowQualityTexture;
+                this.globe.material.needsUpdate = true;
+                this.currentTextureQuality = 'low';
+            }
+        }
+    }
+    
+    /**
+     * Load high quality texture on demand
+     */
+    loadHighQualityTexture() {
+        if (this.isHighQualityLoaded) return;
+        
+        this.isHighQualityLoaded = true;  // Prevent multiple loads
+        const textureLoader = new THREE.TextureLoader();
+        
+        textureLoader.load(
+            'https://unpkg.com/three-globe/example/img/earth-day.jpg',
+            (texture) => {
+                this.highQualityTexture = texture;
+                // If we're still close enough, apply it
+                if (this.camera.position.length() <= 3) {
+                    this.globe.material.map = texture;
+                    this.globe.material.needsUpdate = true;
+                    this.currentTextureQuality = 'high';
+                }
+                console.log('High quality texture loaded');
+            },
+            undefined,
+            (error) => {
+                console.warn('High quality texture failed to load');
+                this.isHighQualityLoaded = false;
+            }
+        );
     }
 }

@@ -77,6 +77,10 @@ class GlobeControls {
         const scale = clampedZ / this.camera.position.length();
         
         this.camera.position.multiplyScalar(scale);
+        
+        // Update marker scales and texture quality
+        this.globe.updateMarkerScales(clampedZ);
+        this.globe.updateTextureQuality(clampedZ);
     }
     
     onTouchStart(event) {
@@ -129,6 +133,10 @@ class GlobeControls {
         const clampedZ = Math.max(this.minDistance, newZ);
         const scale = clampedZ / this.camera.position.length();
         this.camera.position.multiplyScalar(scale);
+        
+        // Update marker scales and texture quality
+        this.globe.updateMarkerScales(clampedZ);
+        this.globe.updateTextureQuality(clampedZ);
     }
     
     zoomOut() {
@@ -136,6 +144,10 @@ class GlobeControls {
         const clampedZ = Math.min(this.maxDistance, newZ);
         const scale = clampedZ / this.camera.position.length();
         this.camera.position.multiplyScalar(scale);
+        
+        // Update marker scales and texture quality
+        this.globe.updateMarkerScales(clampedZ);
+        this.globe.updateTextureQuality(clampedZ);
     }
     
     reset() {
@@ -164,6 +176,10 @@ class GlobeControls {
                 const newZ = currentZ + (targetZ - currentZ) * eased;
                 const scale = newZ / this.camera.position.length();
                 this.camera.position.multiplyScalar(scale);
+                
+                // Update marker scales and texture quality during animation
+                this.globe.updateMarkerScales(newZ);
+                this.globe.updateTextureQuality(newZ);
                 
                 requestAnimationFrame(animate);
             }
