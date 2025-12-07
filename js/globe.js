@@ -320,7 +320,9 @@ class Globe {
         // At minDistance (1.2), scale should be minScaleFactor (0.4)
         // At maxDistance (6), scale should be 1.0
         const normalizedDistance = (cameraDistance - this.minDistance) / (this.maxDistance - this.minDistance);
-        const scaleFactor = this.minScaleFactor + (normalizedDistance * this.scaleRange);
+        // Clamp normalizedDistance to [0, 1] to handle out-of-bounds camera distances
+        const clampedDistance = Math.max(0, Math.min(1, normalizedDistance));
+        const scaleFactor = this.minScaleFactor + (clampedDistance * this.scaleRange);
         
         // Update all marker meshes
         this.markerMeshes.forEach((markerMesh) => {
