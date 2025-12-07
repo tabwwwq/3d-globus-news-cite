@@ -76,57 +76,75 @@ class Globe {
     }
     
     addLights() {
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        // Reduced ambient light for matte appearance
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
         this.scene.add(ambientLight);
         
-        const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        // Reduced directional light intensity for less glare
+        const sunLight = new THREE.DirectionalLight(0xffffff, 0.5);
         sunLight.position.set(5, 3, 5);
         this.scene.add(sunLight);
         
-        const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+        // Reduced fill light for more contrast
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.2);
         fillLight.position.set(-5, -3, -5);
         this.scene.add(fillLight);
     }
     
     createGlobe() {
-        const geometry = new THREE.SphereGeometry(1, 64, 64);
+        // Increased resolution from 64x64 to 128x128 for smoother surface
+        const geometry = new THREE.SphereGeometry(1, 128, 128);
         
-        // Create material with fallback colors in case textures fail to load
-        const material = new THREE.MeshPhongMaterial({
+        // Use MeshStandardMaterial for more realistic, matte rendering
+        const material = new THREE.MeshStandardMaterial({
             color: 0x2233aa,
-            emissive: 0x112244,
-            specular: new THREE.Color(0x333333),
-            shininess: 5
+            roughness: 0.9,      // High roughness for matte surface
+            metalness: 0.0,      // No metallic shine
         });
         
         // Load realistic Earth textures with error handling
         const textureLoader = new THREE.TextureLoader();
         
+        // Use higher quality texture with political boundaries
         textureLoader.load(
-            'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
+            'https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_4k.jpg',
             (texture) => {
+                // Configure anisotropic filtering for better clarity at angles
+                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
                 material.map = texture;
                 material.color = new THREE.Color(0xffffff);
-                material.emissive = new THREE.Color(0x000000);
                 material.needsUpdate = true;
                 this.lowQualityTexture = texture;  // Store low quality texture
             },
             undefined,
             (error) => {
-                console.warn('Earth texture failed to load, using fallback color');
+                console.warn('Earth texture failed to load, trying fallback texture');
+                // Fallback to unpkg texture
+                textureLoader.load(
+                    'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
+                    (texture) => {
+                        texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+                        material.map = texture;
+                        material.color = new THREE.Color(0xffffff);
+                        material.needsUpdate = true;
+                        this.lowQualityTexture = texture;
+                    }
+                );
             }
         );
         
+        // Load normal map for surface detail
         textureLoader.load(
             'https://unpkg.com/three-globe/example/img/earth-topology.png',
             (texture) => {
-                material.bumpMap = texture;
-                material.bumpScale = 0.05;
+                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+                material.normalMap = texture;
+                material.normalScale = new THREE.Vector2(0.85, 0.85);
                 material.needsUpdate = true;
             },
             undefined,
             (error) => {
-                console.warn('Bump map failed to load, continuing without terrain relief');
+                console.warn('Normal map failed to load, continuing without terrain relief');
             }
         );
         
@@ -137,7 +155,8 @@ class Globe {
     }
     
     createAtmosphere() {
-        const geometry = new THREE.SphereGeometry(1.15, 64, 64);
+        // Slightly larger atmosphere sphere for subtle effect
+        const geometry = new THREE.SphereGeometry(1.1, 64, 64);
         const material = new THREE.ShaderMaterial({
             vertexShader: `
                 varying vec3 vNormal;
@@ -149,8 +168,10 @@ class Globe {
             fragmentShader: `
                 varying vec3 vNormal;
                 void main() {
-                    float intensity = pow(0.6 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
-                    gl_FragColor = vec4(0.3, 0.6, 1.0, 1.0) * intensity;
+                    // Reduced intensity from 0.6 to 0.3 and from pow(..., 2.0) to pow(..., 3.0)
+                    float intensity = pow(0.3 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 3.0);
+                    // Reduced alpha from 1.0 to 0.4 for less visible glow
+                    gl_FragColor = vec4(0.3, 0.6, 1.0, 0.4) * intensity;
                 }
             `,
             blending: THREE.AdditiveBlending,
@@ -374,9 +395,11 @@ class Globe {
         
         const textureLoader = new THREE.TextureLoader();
         
+        // Try to load 8k texture first, fallback to lower resolution
         textureLoader.load(
-            'https://unpkg.com/three-globe/example/img/earth-day.jpg',
+            'https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_8k.jpg',
             (texture) => {
+                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
                 this.highQualityTexture = texture;
                 // If we're still close enough, apply it
                 if (this.camera.position.length() <= this.textureQualityThreshold) {
@@ -384,12 +407,30 @@ class Globe {
                     this.globe.material.needsUpdate = true;
                     this.currentTextureQuality = 'high';
                 }
-                console.log('High quality texture loaded');
+                console.log('High quality 8k texture loaded');
             },
             undefined,
             (error) => {
-                console.warn('High quality texture failed to load');
-                // Don't reset isHighQualityLoaded to prevent infinite retry attempts
+                console.warn('8k texture failed to load, trying 4k fallback');
+                // Fallback to 4k texture
+                textureLoader.load(
+                    'https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_4k.jpg',
+                    (texture) => {
+                        texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+                        this.highQualityTexture = texture;
+                        if (this.camera.position.length() <= this.textureQualityThreshold) {
+                            this.globe.material.map = texture;
+                            this.globe.material.needsUpdate = true;
+                            this.currentTextureQuality = 'high';
+                        }
+                        console.log('High quality 4k texture loaded');
+                    },
+                    undefined,
+                    (error) => {
+                        console.warn('High quality texture failed to load');
+                        // Don't reset isHighQualityLoaded to prevent infinite retry attempts
+                    }
+                );
             }
         );
     }
