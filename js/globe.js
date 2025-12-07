@@ -38,7 +38,9 @@ class Globe {
         this.isHighQualityLoaded = false;
         
         // Scaling and LOD configuration
-        this.minScaleFactor = 0.4;  // Scale at closest zoom
+        this.minDistance = 1.2;      // Minimum camera distance
+        this.maxDistance = 6;        // Maximum camera distance
+        this.minScaleFactor = 0.4;   // Scale at closest zoom
         this.scaleRange = 0.6;       // Scale range (max - min)
         this.textureQualityThreshold = 3;  // Distance threshold for high quality texture
         
@@ -308,13 +310,16 @@ class Globe {
      * @param {number} cameraDistance - Current camera distance from globe
      */
     updateMarkerScales(cameraDistance) {
-        const minDistance = 1.2;
-        const maxDistance = 6;
+        // Guard against division by zero
+        if (this.minDistance === this.maxDistance) {
+            console.warn('minDistance and maxDistance cannot be equal');
+            return;
+        }
         
         // Calculate scale factor: closer camera = smaller markers
         // At minDistance (1.2), scale should be minScaleFactor (0.4)
         // At maxDistance (6), scale should be 1.0
-        const normalizedDistance = (cameraDistance - minDistance) / (maxDistance - minDistance);
+        const normalizedDistance = (cameraDistance - this.minDistance) / (this.maxDistance - this.minDistance);
         const scaleFactor = this.minScaleFactor + (normalizedDistance * this.scaleRange);
         
         // Update all marker meshes
@@ -362,13 +367,15 @@ class Globe {
     loadHighQualityTexture() {
         if (this.isHighQualityLoaded) return;
         
+        // Mark as loading immediately to prevent race conditions during rapid camera movement
+        this.isHighQualityLoaded = true;
+        
         const textureLoader = new THREE.TextureLoader();
         
         textureLoader.load(
             'https://unpkg.com/three-globe/example/img/earth-day.jpg',
             (texture) => {
                 this.highQualityTexture = texture;
-                this.isHighQualityLoaded = true;  // Mark as loaded on success
                 // If we're still close enough, apply it
                 if (this.camera.position.length() <= this.textureQualityThreshold) {
                     this.globe.material.map = texture;
