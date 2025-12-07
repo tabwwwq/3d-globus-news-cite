@@ -1,40 +1,32 @@
 /**
  * Main application logic
- * Initializes the map, controls, and UI interactions
+ * Initializes the 3D globe, controls, and UI interactions
  */
 
-// Global variables
 let globe;
 let controls;
 
-/**
- * Initialize the application
- */
 function init() {
-    // Create container
     const container = document.getElementById('container');
     
-    // Initialize map
     globe = new Globe(container);
+    controls = new GlobeControls(globe.camera, globe.renderer.domElement, globe);
     
-    // Initialize controls (simplified for Leaflet)
-    controls = new GlobeControls(null, container, globe);
-    
-    // Add markers for all major cities
     addCityMarkers();
-    
-    // Setup UI event listeners
     setupUIListeners();
     
-    // Hide loading screen after a short delay
     setTimeout(() => {
         hideLoadingScreen();
-    }, 1000);
+    }, 1500);
+    
+    animate();
 }
 
-/**
- * Add city markers to the map
- */
+function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+}
+
 function addCityMarkers() {
     LOCATIONS.forEach(location => {
         globe.addMarker(
@@ -47,23 +39,15 @@ function addCityMarkers() {
         );
     });
     
-    // Initialize markers (compatibility)
     globe.initializeInstancedMarkers();
 }
 
-/**
- * Global function to update mouse coordinates
- */
 window.updateMouseCoordinates = function(lat, lng) {
     document.getElementById('lat-display').textContent = lat.toFixed(2) + '°';
     document.getElementById('lon-display').textContent = lng.toFixed(2) + '°';
 };
 
-/**
- * Setup UI event listeners
- */
 function setupUIListeners() {
-    // Zoom controls
     document.getElementById('zoom-in').addEventListener('click', () => {
         controls.zoomIn();
     });
@@ -76,7 +60,6 @@ function setupUIListeners() {
         controls.reset();
     });
     
-    // Search functionality
     const searchInput = document.getElementById('search-input');
     const searchBtn = document.getElementById('search-btn');
     const searchResults = document.getElementById('search-results');
@@ -100,17 +83,12 @@ function setupUIListeners() {
         }
     });
     
-    // Click outside to close search results
     document.addEventListener('click', (e) => {
         if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
             searchResults.classList.remove('visible');
         }
     });
     
-    // Marker click is handled by Leaflet popups now
-    // No need for manual click detection
-    
-    // Close popup (legacy - Leaflet handles this)
     const closePopupBtn = document.getElementById('close-popup');
     if (closePopupBtn) {
         closePopupBtn.addEventListener('click', () => {
@@ -119,9 +97,6 @@ function setupUIListeners() {
     }
 }
 
-/**
- * Perform search and navigate to first result
- */
 function performSearch() {
     const searchInput = document.getElementById('search-input');
     const query = searchInput.value.trim();
@@ -137,9 +112,6 @@ function performSearch() {
     }
 }
 
-/**
- * Display search results
- */
 function displaySearchResults(results) {
     const searchResults = document.getElementById('search-results');
     
@@ -167,39 +139,15 @@ function displaySearchResults(results) {
     searchResults.classList.add('visible');
 }
 
-/**
- * Navigate to a specific location
- */
 function navigateToLocation(location) {
     controls.animateToLocation(location.lat, location.lon);
-    showLocationPopup(location);
 }
 
-/**
- * Navigate to a specific location
- */
-function navigateToLocation(location) {
-    controls.animateToLocation(location.lat, location.lon);
-    // Leaflet popups are handled by the marker itself
-}
-
-/**
- * Show location popup (legacy - Leaflet handles popups)
- */
-function showLocationPopup(location) {
-    // Not used with Leaflet - markers have built-in popups
-}
-
-/**
- * Hide location popup (legacy)
- */
 function hideLocationPopup() {
-    // Not used with Leaflet
+    const popup = document.getElementById('location-popup');
+    popup.classList.remove('visible');
 }
 
-/**
- * Hide loading screen
- */
 function hideLoadingScreen() {
     const loadingScreen = document.getElementById('loading-screen');
     loadingScreen.classList.add('hidden');
@@ -208,14 +156,10 @@ function hideLoadingScreen() {
     }, 500);
 }
 
-/**
- * Handle errors
- */
 window.addEventListener('error', (e) => {
     console.error('An error occurred:', e.error);
 });
 
-// Initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {
