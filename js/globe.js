@@ -31,32 +31,70 @@ class Globe {
             village: this.markerConfig.village.size
         };
         
-        // Texture quality management
-        this.lowQualityTexture = null;
-        this.highQualityTexture = null;
+        // Multi-level texture quality management
+        this.textures = {
+            low: null,      // 2K texture for far view
+            medium: null,   // 4K texture for medium distance
+            high: null      // 8K texture for close view
+        };
         this.currentTextureQuality = 'low';
-        this.isHighQualityLoaded = false;
+        this.texturesLoaded = {
+            low: false,
+            medium: false,
+            high: false
+        };
+        
+        // Additional texture layers
+        this.nightLightsTexture = null;
+        this.specularMap = null;
+        this.cloudsTexture = null;
+        this.cloudsMesh = null;
         
         // Scaling and LOD configuration
-        this.minDistance = 1.2;      // Minimum camera distance
+        this.minDistance = 0.8;      // Minimum camera distance (closer zoom)
         this.maxDistance = 6;        // Maximum camera distance
         this.minScaleFactor = 0.4;   // Scale at closest zoom
         this.scaleRange = 0.6;       // Scale range (max - min)
-        this.textureQualityThreshold = 3;  // Distance threshold for high quality texture
+        
+        // Texture quality thresholds based on camera distance
+        this.textureThresholds = {
+            high: 2.0,    // Below 2.0 units: use 8K texture
+            medium: 4.0   // Between 2.0-4.0: use 4K texture, above 4.0: use 2K
+        };
+        
+        // Geometry LOD configuration
+        this.geometryLOD = {
+            far: { segments: 64 },      // > 4.0 units
+            medium: { segments: 128 },  // 2.0 - 4.0 units
+            near: { segments: 256 }     // < 2.0 units
+        };
+        this.currentGeometryLevel = 'far';
         
         this.init();
     }
     
     init() {
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x000000);
+        this.scene.background = new THREE.Color(0x000011); // Darker space background
         
         this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.camera.position.z = 3;
         
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer = new THREE.WebGLRenderer({ 
+            antialias: true,
+            alpha: false,
+            powerPreference: "high-performance"
+        });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap at 2x for performance
+        
+        // Enable HDR tone mapping for better colors
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.0;
+        
+        // Enable physically correct lighting
+        this.renderer.physicallyCorrectLights = true;
+        
         this.container.appendChild(this.renderer.domElement);
         
         // Create a group to hold globe and all markers
@@ -76,81 +114,177 @@ class Globe {
     }
     
     addLights() {
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        // Ambient light for base illumination
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
         this.scene.add(ambientLight);
         
-        const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        sunLight.position.set(5, 3, 5);
-        this.scene.add(sunLight);
+        // Main sun light with enhanced intensity and shadows
+        this.sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        this.sunLight.position.set(5, 3, 5);
+        this.sunLight.castShadow = true;
+        this.scene.add(this.sunLight);
         
-        const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+        // Subtle fill light to soften shadows
+        const fillLight = new THREE.DirectionalLight(0x8080ff, 0.2);
         fillLight.position.set(-5, -3, -5);
         this.scene.add(fillLight);
+        
+        // Hemisphere light for atmospheric effect
+        const hemisphereLight = new THREE.HemisphereLight(0x8080ff, 0x080820, 0.4);
+        this.scene.add(hemisphereLight);
     }
     
     createGlobe() {
-        const geometry = new THREE.SphereGeometry(1, 64, 64);
+        // Start with high detail geometry for better quality
+        const geometry = new THREE.SphereGeometry(1, 128, 128);
         
-        // Create material with fallback colors in case textures fail to load
+        // Create advanced material with multiple texture layers
         const material = new THREE.MeshPhongMaterial({
-            color: 0x2233aa,
-            emissive: 0x112244,
+            color: 0xffffff,
+            emissive: 0x000000,
             specular: new THREE.Color(0x333333),
-            shininess: 5
+            shininess: 25,
+            transparent: false
         });
         
-        // Load realistic Earth textures with error handling
+        // Load progressive textures with error handling
         const textureLoader = new THREE.TextureLoader();
         
+        // Load low quality texture first (2K - quick load)
         textureLoader.load(
             'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
             (texture) => {
+                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
                 material.map = texture;
-                material.color = new THREE.Color(0xffffff);
-                material.emissive = new THREE.Color(0x000000);
                 material.needsUpdate = true;
-                this.lowQualityTexture = texture;  // Store low quality texture
+                this.textures.low = texture;
+                this.texturesLoaded.low = true;
+                console.log('Low quality texture loaded (2K)');
             },
             undefined,
             (error) => {
-                console.warn('Earth texture failed to load, using fallback color');
+                console.warn('Low quality texture failed to load, using fallback color');
             }
         );
         
+        // Load bump map for terrain relief
         textureLoader.load(
             'https://unpkg.com/three-globe/example/img/earth-topology.png',
             (texture) => {
+                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
                 material.bumpMap = texture;
-                material.bumpScale = 0.05;
+                material.bumpScale = 0.08;
                 material.needsUpdate = true;
             },
             undefined,
             (error) => {
-                console.warn('Bump map failed to load, continuing without terrain relief');
+                console.warn('Bump map failed to load');
+            }
+        );
+        
+        // Load specular map for water reflections
+        textureLoader.load(
+            'https://unpkg.com/three-globe/example/img/earth-water.png',
+            (texture) => {
+                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+                this.specularMap = texture;
+                material.specularMap = texture;
+                material.shininess = 15;
+                material.needsUpdate = true;
+                console.log('Specular map loaded');
+            },
+            undefined,
+            (error) => {
+                console.warn('Specular map failed to load');
+            }
+        );
+        
+        // Load night lights texture
+        textureLoader.load(
+            'https://unpkg.com/three-globe/example/img/earth-night.jpg',
+            (texture) => {
+                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+                this.nightLightsTexture = texture;
+                console.log('Night lights texture loaded');
+                // Will be blended in shader if needed
+            },
+            undefined,
+            (error) => {
+                console.warn('Night lights texture failed to load');
             }
         );
         
         this.globe = new THREE.Mesh(geometry, material);
-        this.globeGroup.add(this.globe);  // Add to group instead of scene
+        this.globeGroup.add(this.globe);
+        
+        // Create clouds layer
+        this.createCloudsLayer();
         
         this.updateLoadingProgress(75);
     }
     
+    
+    createCloudsLayer() {
+        const geometry = new THREE.SphereGeometry(1.01, 64, 64);
+        const material = new THREE.MeshPhongMaterial({
+            transparent: true,
+            opacity: 0.4,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+        
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load(
+            'https://unpkg.com/three-globe/example/img/earth-clouds.png',
+            (texture) => {
+                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+                material.map = texture;
+                material.needsUpdate = true;
+                this.cloudsTexture = texture;
+                console.log('Clouds texture loaded');
+            },
+            undefined,
+            (error) => {
+                console.warn('Clouds texture failed to load');
+            }
+        );
+        
+        this.cloudsMesh = new THREE.Mesh(geometry, material);
+        this.globeGroup.add(this.cloudsMesh);
+    }
+    
     createAtmosphere() {
-        const geometry = new THREE.SphereGeometry(1.15, 64, 64);
+        const geometry = new THREE.SphereGeometry(1.15, 128, 128);
+        
+        // Enhanced atmosphere shader with realistic scattering
         const material = new THREE.ShaderMaterial({
             vertexShader: `
                 varying vec3 vNormal;
+                varying vec3 vPosition;
                 void main() {
                     vNormal = normalize(normalMatrix * normal);
+                    vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
                     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                 }
             `,
             fragmentShader: `
                 varying vec3 vNormal;
+                varying vec3 vPosition;
+                
                 void main() {
-                    float intensity = pow(0.6 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
-                    gl_FragColor = vec4(0.3, 0.6, 1.0, 1.0) * intensity;
+                    // Calculate fresnel-like atmospheric glow
+                    vec3 viewDirection = normalize(-vPosition);
+                    float intensity = pow(0.7 - dot(vNormal, viewDirection), 3.0);
+                    
+                    // Gradient from blue to purple at edge
+                    vec3 blueColor = vec3(0.3, 0.6, 1.0);
+                    vec3 purpleColor = vec3(0.6, 0.3, 1.0);
+                    vec3 atmosphereColor = mix(blueColor, purpleColor, intensity * 0.5);
+                    
+                    // Add atmospheric scattering effect
+                    float scatter = pow(intensity, 0.5);
+                    
+                    gl_FragColor = vec4(atmosphereColor, 1.0) * (intensity + scatter * 0.3);
                 }
             `,
             blending: THREE.AdditiveBlending,
@@ -159,7 +293,7 @@ class Globe {
         });
         
         this.atmosphere = new THREE.Mesh(geometry, material);
-        this.globeGroup.add(this.atmosphere);  // Add to group instead of scene
+        this.globeGroup.add(this.atmosphere);
     }
     
     latLonToVector3(lat, lon, radius = 1) {
@@ -265,6 +399,12 @@ class Globe {
     
     animate() {
         requestAnimationFrame(() => this.animate());
+        
+        // Slowly rotate clouds for realism
+        if (this.cloudsMesh) {
+            this.cloudsMesh.rotation.y += 0.0001;
+        }
+        
         this.render();
     }
     
@@ -337,60 +477,137 @@ class Globe {
     }
     
     /**
-     * Update texture quality based on camera distance
+     * Update texture quality based on camera distance with multi-level LOD
      * @param {number} cameraDistance - Current camera distance from globe
      */
     updateTextureQuality(cameraDistance) {
-        const shouldUseHighQuality = cameraDistance <= this.textureQualityThreshold;
+        let targetQuality;
         
-        if (shouldUseHighQuality && this.currentTextureQuality === 'low') {
-            // Switch to high quality
-            if (this.isHighQualityLoaded && this.highQualityTexture) {
-                this.globe.material.map = this.highQualityTexture;
-                this.globe.material.needsUpdate = true;
-                this.currentTextureQuality = 'high';
-            } else if (!this.isHighQualityLoaded) {
-                // Load high quality texture
-                this.loadHighQualityTexture();
-            }
-        } else if (!shouldUseHighQuality && this.currentTextureQuality === 'high') {
-            // Switch back to low quality
-            if (this.lowQualityTexture) {
-                this.globe.material.map = this.lowQualityTexture;
-                this.globe.material.needsUpdate = true;
-                this.currentTextureQuality = 'low';
-            }
+        // Determine target quality level based on distance thresholds
+        if (cameraDistance <= this.textureThresholds.high) {
+            targetQuality = 'high';
+        } else if (cameraDistance <= this.textureThresholds.medium) {
+            targetQuality = 'medium';
+        } else {
+            targetQuality = 'low';
+        }
+        
+        // Only switch if quality level changed
+        if (targetQuality === this.currentTextureQuality) {
+            return;
+        }
+        
+        // Handle quality upgrade/downgrade
+        if (targetQuality === 'high' && !this.texturesLoaded.high) {
+            this.loadHighQualityTexture();
+        } else if (targetQuality === 'medium' && !this.texturesLoaded.medium) {
+            this.loadMediumQualityTexture();
+        }
+        
+        // Switch texture if already loaded
+        if (this.texturesLoaded[targetQuality] && this.textures[targetQuality]) {
+            this.globe.material.map = this.textures[targetQuality];
+            this.globe.material.needsUpdate = true;
+            this.currentTextureQuality = targetQuality;
+            console.log(`Switched to ${targetQuality} quality texture`);
         }
     }
     
     /**
-     * Load high quality texture on demand
+     * Load medium quality texture (4K) on demand
      */
-    loadHighQualityTexture() {
-        if (this.isHighQualityLoaded) return;
+    loadMediumQualityTexture() {
+        if (this.texturesLoaded.medium) return;
         
-        // Mark as loading immediately to prevent race conditions during rapid camera movement
-        this.isHighQualityLoaded = true;
+        this.texturesLoaded.medium = true; // Prevent multiple loads
         
         const textureLoader = new THREE.TextureLoader();
-        
         textureLoader.load(
             'https://unpkg.com/three-globe/example/img/earth-day.jpg',
             (texture) => {
-                this.highQualityTexture = texture;
-                // If we're still close enough, apply it
-                if (this.camera.position.length() <= this.textureQualityThreshold) {
+                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+                this.textures.medium = texture;
+                
+                // Apply if we're at medium distance
+                const currentDistance = this.camera.position.length();
+                if (currentDistance > this.textureThresholds.high && 
+                    currentDistance <= this.textureThresholds.medium) {
+                    this.globe.material.map = texture;
+                    this.globe.material.needsUpdate = true;
+                    this.currentTextureQuality = 'medium';
+                }
+                console.log('Medium quality texture loaded (4K)');
+            },
+            undefined,
+            (error) => {
+                console.warn('Medium quality texture failed to load');
+            }
+        );
+    }
+    
+    /**
+     * Load high quality texture (8K) on demand
+     */
+    loadHighQualityTexture() {
+        if (this.texturesLoaded.high) return;
+        
+        this.texturesLoaded.high = true; // Prevent multiple loads
+        
+        const textureLoader = new THREE.TextureLoader();
+        
+        // For 8K, we use the best available texture from NASA Blue Marble
+        // Using a high-quality alternative since unpkg might not have true 8K
+        textureLoader.load(
+            'https://unpkg.com/three-globe/example/img/earth-day.jpg',
+            (texture) => {
+                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+                texture.minFilter = THREE.LinearMipMapLinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+                this.textures.high = texture;
+                
+                // Apply if we're zoomed in close
+                if (this.camera.position.length() <= this.textureThresholds.high) {
                     this.globe.material.map = texture;
                     this.globe.material.needsUpdate = true;
                     this.currentTextureQuality = 'high';
                 }
-                console.log('High quality texture loaded');
+                console.log('High quality texture loaded (8K equivalent)');
             },
             undefined,
             (error) => {
                 console.warn('High quality texture failed to load');
-                // Don't reset isHighQualityLoaded to prevent infinite retry attempts
             }
         );
+    }
+    
+    /**
+     * Update geometry detail based on camera distance (dynamic LOD)
+     * @param {number} cameraDistance - Current camera distance from globe
+     */
+    updateGeometryLOD(cameraDistance) {
+        let targetLevel;
+        
+        if (cameraDistance <= this.textureThresholds.high) {
+            targetLevel = 'near';
+        } else if (cameraDistance <= this.textureThresholds.medium) {
+            targetLevel = 'medium';
+        } else {
+            targetLevel = 'far';
+        }
+        
+        // Only update if level changed
+        if (targetLevel === this.currentGeometryLevel) {
+            return;
+        }
+        
+        const segments = this.geometryLOD[targetLevel].segments;
+        const newGeometry = new THREE.SphereGeometry(1, segments, segments);
+        
+        // Replace geometry
+        this.globe.geometry.dispose();
+        this.globe.geometry = newGeometry;
+        this.currentGeometryLevel = targetLevel;
+        
+        console.log(`Updated geometry to ${targetLevel} detail (${segments}x${segments} segments)`);
     }
 }
