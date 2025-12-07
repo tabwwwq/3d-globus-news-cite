@@ -140,9 +140,9 @@ class Globe {
         
         // Create advanced material with multiple texture layers
         const material = new THREE.MeshPhongMaterial({
-            color: 0xffffff,
-            emissive: 0x000000,
-            specular: new THREE.Color(0x333333),
+            color: 0x2a5599,  // Ocean blue as fallback
+            emissive: 0x0a1122,
+            specular: new THREE.Color(0x4488aa),
             shininess: 25,
             transparent: false
         });
@@ -150,41 +150,79 @@ class Globe {
         // Load progressive textures with error handling
         const textureLoader = new THREE.TextureLoader();
         
-        // Load low quality texture first (2K - quick load)
-        textureLoader.load(
-            'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
+        // Try to load low quality texture first (2K - quick load)
+        // Using local path first, fallback to CDN
+        const texturePaths = {
+            low: ['textures/earth-blue-marble.jpg', 'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg'],
+            medium: ['textures/earth-day.jpg', 'https://unpkg.com/three-globe/example/img/earth-day.jpg'],
+            high: ['textures/earth-day.jpg', 'https://unpkg.com/three-globe/example/img/earth-day.jpg'],
+            bump: ['textures/earth-topology.png', 'https://unpkg.com/three-globe/example/img/earth-topology.png'],
+            specular: ['textures/earth-water.png', 'https://unpkg.com/three-globe/example/img/earth-water.png'],
+            night: ['textures/earth-night.jpg', 'https://unpkg.com/three-globe/example/img/earth-night.jpg'],
+            clouds: ['textures/earth-clouds.png', 'https://unpkg.com/three-globe/example/img/earth-clouds.png']
+        };
+        
+        // Helper function to try loading from multiple paths
+        const loadTextureWithFallback = (paths, onSuccess, onError) => {
+            let currentIndex = 0;
+            
+            const tryLoad = () => {
+                if (currentIndex >= paths.length) {
+                    if (onError) onError();
+                    return;
+                }
+                
+                textureLoader.load(
+                    paths[currentIndex],
+                    onSuccess,
+                    undefined,
+                    () => {
+                        currentIndex++;
+                        tryLoad();
+                    }
+                );
+            };
+            
+            tryLoad();
+        };
+        
+        // Load low quality texture
+        loadTextureWithFallback(
+            texturePaths.low,
             (texture) => {
                 texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
                 material.map = texture;
+                material.color = new THREE.Color(0xffffff);
+                material.emissive = new THREE.Color(0x000000);
                 material.needsUpdate = true;
                 this.textures.low = texture;
                 this.texturesLoaded.low = true;
                 console.log('Low quality texture loaded (2K)');
             },
-            undefined,
-            (error) => {
-                console.warn('Low quality texture failed to load, using fallback color');
+            () => {
+                console.warn('Low quality texture failed to load from all sources, using procedural colors');
+                // Keep the nice blue/green procedural colors as fallback
             }
         );
         
         // Load bump map for terrain relief
-        textureLoader.load(
-            'https://unpkg.com/three-globe/example/img/earth-topology.png',
+        loadTextureWithFallback(
+            texturePaths.bump,
             (texture) => {
                 texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
                 material.bumpMap = texture;
                 material.bumpScale = 0.08;
                 material.needsUpdate = true;
+                console.log('Bump map loaded');
             },
-            undefined,
-            (error) => {
-                console.warn('Bump map failed to load');
+            () => {
+                console.warn('Bump map failed to load from all sources');
             }
         );
         
         // Load specular map for water reflections
-        textureLoader.load(
-            'https://unpkg.com/three-globe/example/img/earth-water.png',
+        loadTextureWithFallback(
+            texturePaths.specular,
             (texture) => {
                 texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
                 this.specularMap = texture;
@@ -193,29 +231,29 @@ class Globe {
                 material.needsUpdate = true;
                 console.log('Specular map loaded');
             },
-            undefined,
-            (error) => {
-                console.warn('Specular map failed to load');
+            () => {
+                console.warn('Specular map failed to load from all sources');
             }
         );
         
         // Load night lights texture
-        textureLoader.load(
-            'https://unpkg.com/three-globe/example/img/earth-night.jpg',
+        loadTextureWithFallback(
+            texturePaths.night,
             (texture) => {
                 texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
                 this.nightLightsTexture = texture;
                 console.log('Night lights texture loaded');
-                // Will be blended in shader if needed
             },
-            undefined,
-            (error) => {
-                console.warn('Night lights texture failed to load');
+            () => {
+                console.warn('Night lights texture failed to load from all sources');
             }
         );
         
         this.globe = new THREE.Mesh(geometry, material);
         this.globeGroup.add(this.globe);
+        
+        // Store texture paths for later use
+        this.texturePaths = texturePaths;
         
         // Create clouds layer
         this.createCloudsLayer();
@@ -234,20 +272,31 @@ class Globe {
         });
         
         const textureLoader = new THREE.TextureLoader();
-        textureLoader.load(
-            'https://unpkg.com/three-globe/example/img/earth-clouds.png',
-            (texture) => {
-                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
-                material.map = texture;
-                material.needsUpdate = true;
-                this.cloudsTexture = texture;
-                console.log('Clouds texture loaded');
-            },
-            undefined,
-            (error) => {
-                console.warn('Clouds texture failed to load');
+        const cloudPaths = this.texturePaths?.clouds || ['textures/earth-clouds.png', 'https://unpkg.com/three-globe/example/img/earth-clouds.png'];
+        
+        const loadCloudTexture = (paths, index = 0) => {
+            if (index >= paths.length) {
+                console.warn('Clouds texture failed to load from all sources');
+                return;
             }
-        );
+            
+            textureLoader.load(
+                paths[index],
+                (texture) => {
+                    texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+                    material.map = texture;
+                    material.needsUpdate = true;
+                    this.cloudsTexture = texture;
+                    console.log('Clouds texture loaded');
+                },
+                undefined,
+                () => {
+                    loadCloudTexture(paths, index + 1);
+                }
+            );
+        };
+        
+        loadCloudTexture(cloudPaths);
         
         this.cloudsMesh = new THREE.Mesh(geometry, material);
         this.globeGroup.add(this.cloudsMesh);
@@ -522,27 +571,38 @@ class Globe {
         this.texturesLoaded.medium = true; // Prevent multiple loads
         
         const textureLoader = new THREE.TextureLoader();
-        textureLoader.load(
-            'https://unpkg.com/three-globe/example/img/earth-day.jpg',
-            (texture) => {
-                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
-                this.textures.medium = texture;
-                
-                // Apply if we're at medium distance
-                const currentDistance = this.camera.position.length();
-                if (currentDistance > this.textureThresholds.high && 
-                    currentDistance <= this.textureThresholds.medium) {
-                    this.globe.material.map = texture;
-                    this.globe.material.needsUpdate = true;
-                    this.currentTextureQuality = 'medium';
-                }
-                console.log('Medium quality texture loaded (4K)');
-            },
-            undefined,
-            (error) => {
-                console.warn('Medium quality texture failed to load');
+        const paths = this.texturePaths?.medium || ['textures/earth-day.jpg', 'https://unpkg.com/three-globe/example/img/earth-day.jpg'];
+        
+        const tryLoadMedium = (index = 0) => {
+            if (index >= paths.length) {
+                console.warn('Medium quality texture failed to load from all sources');
+                return;
             }
-        );
+            
+            textureLoader.load(
+                paths[index],
+                (texture) => {
+                    texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+                    this.textures.medium = texture;
+                    
+                    // Apply if we're at medium distance
+                    const currentDistance = this.camera.position.length();
+                    if (currentDistance > this.textureThresholds.high && 
+                        currentDistance <= this.textureThresholds.medium) {
+                        this.globe.material.map = texture;
+                        this.globe.material.needsUpdate = true;
+                        this.currentTextureQuality = 'medium';
+                    }
+                    console.log('Medium quality texture loaded (4K)');
+                },
+                undefined,
+                () => {
+                    tryLoadMedium(index + 1);
+                }
+            );
+        };
+        
+        tryLoadMedium();
     }
     
     /**
@@ -554,30 +614,38 @@ class Globe {
         this.texturesLoaded.high = true; // Prevent multiple loads
         
         const textureLoader = new THREE.TextureLoader();
+        const paths = this.texturePaths?.high || ['textures/earth-day.jpg', 'https://unpkg.com/three-globe/example/img/earth-day.jpg'];
         
-        // For 8K, we use the best available texture from NASA Blue Marble
-        // Using a high-quality alternative since unpkg might not have true 8K
-        textureLoader.load(
-            'https://unpkg.com/three-globe/example/img/earth-day.jpg',
-            (texture) => {
-                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
-                texture.minFilter = THREE.LinearMipMapLinearFilter;
-                texture.magFilter = THREE.LinearFilter;
-                this.textures.high = texture;
-                
-                // Apply if we're zoomed in close
-                if (this.camera.position.length() <= this.textureThresholds.high) {
-                    this.globe.material.map = texture;
-                    this.globe.material.needsUpdate = true;
-                    this.currentTextureQuality = 'high';
-                }
-                console.log('High quality texture loaded (8K equivalent)');
-            },
-            undefined,
-            (error) => {
-                console.warn('High quality texture failed to load');
+        const tryLoadHigh = (index = 0) => {
+            if (index >= paths.length) {
+                console.warn('High quality texture failed to load from all sources');
+                return;
             }
-        );
+            
+            textureLoader.load(
+                paths[index],
+                (texture) => {
+                    texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+                    texture.minFilter = THREE.LinearMipMapLinearFilter;
+                    texture.magFilter = THREE.LinearFilter;
+                    this.textures.high = texture;
+                    
+                    // Apply if we're zoomed in close
+                    if (this.camera.position.length() <= this.textureThresholds.high) {
+                        this.globe.material.map = texture;
+                        this.globe.material.needsUpdate = true;
+                        this.currentTextureQuality = 'high';
+                    }
+                    console.log('High quality texture loaded (8K equivalent)');
+                },
+                undefined,
+                () => {
+                    tryLoadHigh(index + 1);
+                }
+            );
+        };
+        
+        tryLoadHigh();
     }
     
     /**

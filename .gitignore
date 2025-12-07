@@ -32,4 +32,9 @@ temp/
 # OS files
 Thumbs.db
 js/globe.js.backup
-node_modules/
+
+# Texture files (optional - can be large)
+textures/*.jpg
+textures/*.png
+textures/*.jpeg
+!textures/README.md
