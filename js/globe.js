@@ -75,6 +75,37 @@ class Globe {
         this.animate();
     }
     
+    /**
+     * Helper method to apply texture to globe material
+     * @param {THREE.Texture} texture - The texture to apply
+     * @param {THREE.Material} material - The material to update
+     * @param {boolean} isLowQuality - Whether this is the low quality texture
+     */
+    applyTextureToMaterial(texture, material, isLowQuality = false) {
+        texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+        material.map = texture;
+        material.color = new THREE.Color(0xffffff);
+        material.needsUpdate = true;
+        if (isLowQuality) {
+            this.lowQualityTexture = texture;
+        }
+    }
+    
+    /**
+     * Helper method to apply high quality texture when loaded
+     * @param {THREE.Texture} texture - The texture to apply
+     */
+    applyHighQualityTexture(texture) {
+        texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+        this.highQualityTexture = texture;
+        // If we're still close enough, apply it
+        if (this.camera.position.length() <= this.textureQualityThreshold) {
+            this.globe.material.map = texture;
+            this.globe.material.needsUpdate = true;
+            this.currentTextureQuality = 'high';
+        }
+    }
+    
     addLights() {
         // Reduced ambient light for matte appearance
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
@@ -109,12 +140,7 @@ class Globe {
         textureLoader.load(
             'https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_4k.jpg',
             (texture) => {
-                // Configure anisotropic filtering for better clarity at angles
-                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
-                material.map = texture;
-                material.color = new THREE.Color(0xffffff);
-                material.needsUpdate = true;
-                this.lowQualityTexture = texture;  // Store low quality texture
+                this.applyTextureToMaterial(texture, material, true);
             },
             undefined,
             (error) => {
@@ -123,11 +149,7 @@ class Globe {
                 textureLoader.load(
                     'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
                     (texture) => {
-                        texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
-                        material.map = texture;
-                        material.color = new THREE.Color(0xffffff);
-                        material.needsUpdate = true;
-                        this.lowQualityTexture = texture;
+                        this.applyTextureToMaterial(texture, material, true);
                     }
                 );
             }
@@ -169,7 +191,8 @@ class Globe {
                 varying vec3 vNormal;
                 void main() {
                     // Reduced intensity from 0.6 to 0.3 and from pow(..., 2.0) to pow(..., 3.0)
-                    float intensity = pow(0.3 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 3.0);
+                    // Clamp to prevent negative values
+                    float intensity = pow(max(0.0, 0.3 - dot(vNormal, vec3(0.0, 0.0, 1.0))), 3.0);
                     // Reduced alpha from 1.0 to 0.4 for less visible glow
                     gl_FragColor = vec4(0.3, 0.6, 1.0, 0.4) * intensity;
                 }
@@ -399,14 +422,7 @@ class Globe {
         textureLoader.load(
             'https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_8k.jpg',
             (texture) => {
-                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
-                this.highQualityTexture = texture;
-                // If we're still close enough, apply it
-                if (this.camera.position.length() <= this.textureQualityThreshold) {
-                    this.globe.material.map = texture;
-                    this.globe.material.needsUpdate = true;
-                    this.currentTextureQuality = 'high';
-                }
+                this.applyHighQualityTexture(texture);
                 console.log('High quality 8k texture loaded');
             },
             undefined,
@@ -416,13 +432,7 @@ class Globe {
                 textureLoader.load(
                     'https://raw.githubusercontent.com/turban/webgl-earth/master/images/2_no_clouds_4k.jpg',
                     (texture) => {
-                        texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
-                        this.highQualityTexture = texture;
-                        if (this.camera.position.length() <= this.textureQualityThreshold) {
-                            this.globe.material.map = texture;
-                            this.globe.material.needsUpdate = true;
-                            this.currentTextureQuality = 'high';
-                        }
+                        this.applyHighQualityTexture(texture);
                         console.log('High quality 4k texture loaded');
                     },
                     undefined,
