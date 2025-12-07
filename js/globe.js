@@ -70,6 +70,13 @@ class Globe {
         };
         this.currentGeometryLevel = 'far';
         
+        // Pre-create geometry pool to avoid recreation during zoom
+        this.geometryPool = {
+            far: new THREE.SphereGeometry(1, 64, 64),
+            medium: new THREE.SphereGeometry(1, 128, 128),
+            near: new THREE.SphereGeometry(1, 256, 256)
+        };
+        
         this.init();
     }
     
@@ -92,8 +99,8 @@ class Globe {
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.0;
         
-        // Enable physically correct lighting
-        this.renderer.physicallyCorrectLights = true;
+        // Enable physically correct lighting (compatible with Three.js r150+)
+        this.renderer.useLegacyLights = false;
         
         this.container.appendChild(this.renderer.domElement);
         
@@ -271,32 +278,46 @@ class Globe {
             depthWrite: false
         });
         
-        const textureLoader = new THREE.TextureLoader();
         const cloudPaths = this.texturePaths?.clouds || ['textures/earth-clouds.png', 'https://unpkg.com/three-globe/example/img/earth-clouds.png'];
         
-        const loadCloudTexture = (paths, index = 0) => {
-            if (index >= paths.length) {
-                console.warn('Clouds texture failed to load from all sources');
-                return;
-            }
+        // Use the existing helper function
+        const loadTextureWithFallback = (paths, onSuccess, onError) => {
+            let currentIndex = 0;
+            const textureLoader = new THREE.TextureLoader();
             
-            textureLoader.load(
-                paths[index],
-                (texture) => {
-                    texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
-                    material.map = texture;
-                    material.needsUpdate = true;
-                    this.cloudsTexture = texture;
-                    console.log('Clouds texture loaded');
-                },
-                undefined,
-                () => {
-                    loadCloudTexture(paths, index + 1);
+            const tryLoad = () => {
+                if (currentIndex >= paths.length) {
+                    if (onError) onError();
+                    return;
                 }
-            );
+                
+                textureLoader.load(
+                    paths[currentIndex],
+                    onSuccess,
+                    undefined,
+                    () => {
+                        currentIndex++;
+                        tryLoad();
+                    }
+                );
+            };
+            
+            tryLoad();
         };
         
-        loadCloudTexture(cloudPaths);
+        loadTextureWithFallback(
+            cloudPaths,
+            (texture) => {
+                texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+                material.map = texture;
+                material.needsUpdate = true;
+                this.cloudsTexture = texture;
+                console.log('Clouds texture loaded');
+            },
+            () => {
+                console.warn('Clouds texture failed to load from all sources');
+            }
+        );
         
         this.cloudsMesh = new THREE.Mesh(geometry, material);
         this.globeGroup.add(this.cloudsMesh);
@@ -650,6 +671,7 @@ class Globe {
     
     /**
      * Update geometry detail based on camera distance (dynamic LOD)
+     * Uses pre-created geometry pool to avoid recreation overhead
      * @param {number} cameraDistance - Current camera distance from globe
      */
     updateGeometryLOD(cameraDistance) {
@@ -668,14 +690,11 @@ class Globe {
             return;
         }
         
-        const segments = this.geometryLOD[targetLevel].segments;
-        const newGeometry = new THREE.SphereGeometry(1, segments, segments);
-        
-        // Replace geometry
-        this.globe.geometry.dispose();
-        this.globe.geometry = newGeometry;
+        // Use pre-created geometry from pool (no disposal needed)
+        this.globe.geometry = this.geometryPool[targetLevel];
         this.currentGeometryLevel = targetLevel;
         
+        const segments = this.geometryLOD[targetLevel].segments;
         console.log(`Updated geometry to ${targetLevel} detail (${segments}x${segments} segments)`);
     }
 }
