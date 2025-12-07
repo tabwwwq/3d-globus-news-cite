@@ -314,13 +314,8 @@ class Globe {
         
         // Update all marker meshes
         this.markerMeshes.forEach((markerMesh) => {
-            const type = markerMesh.userData.type || 'city';
-            const baseSize = this.baseMarkerSizes[type];
-            const newSize = baseSize * scaleFactor;
-            
-            // Update the geometry scale
-            const scale = newSize / baseSize;
-            markerMesh.scale.set(scale, scale, scale);
+            // Update the geometry scale directly with scaleFactor
+            markerMesh.scale.set(scaleFactor, scaleFactor, scaleFactor);
         });
         
         // Update config for new markers
@@ -345,7 +340,7 @@ class Globe {
                 this.currentTextureQuality = 'high';
             } else if (!this.isHighQualityLoaded) {
                 // Load high quality texture
-                this.loadHighQualityTexture();
+                this.loadHighQualityTexture(qualityThreshold);
             }
         } else if (!shouldUseHighQuality && this.currentTextureQuality === 'high') {
             // Switch back to low quality
@@ -359,19 +354,20 @@ class Globe {
     
     /**
      * Load high quality texture on demand
+     * @param {number} qualityThreshold - Distance threshold for high quality texture
      */
-    loadHighQualityTexture() {
+    loadHighQualityTexture(qualityThreshold) {
         if (this.isHighQualityLoaded) return;
         
-        this.isHighQualityLoaded = true;  // Prevent multiple loads
         const textureLoader = new THREE.TextureLoader();
         
         textureLoader.load(
             'https://unpkg.com/three-globe/example/img/earth-day.jpg',
             (texture) => {
                 this.highQualityTexture = texture;
+                this.isHighQualityLoaded = true;  // Mark as loaded on success
                 // If we're still close enough, apply it
-                if (this.camera.position.length() <= 3) {
+                if (this.camera.position.length() <= qualityThreshold) {
                     this.globe.material.map = texture;
                     this.globe.material.needsUpdate = true;
                     this.currentTextureQuality = 'high';
