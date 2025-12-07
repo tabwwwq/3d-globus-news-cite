@@ -8,8 +8,8 @@ class Globe {
         this.scene = null;
         this.camera = null;
         this.renderer = null;
+        this.globeGroup = null;  // Group for globe, atmosphere, and markers
         this.globe = null;
-        this.clouds = null;
         this.atmosphere = null;
         this.markers = [];
         this.markerMeshes = [];
@@ -37,6 +37,10 @@ class Globe {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.container.appendChild(this.renderer.domElement);
+        
+        // Create a group to hold globe and all markers
+        this.globeGroup = new THREE.Group();
+        this.scene.add(this.globeGroup);
         
         this.addLights();
         this.createGlobe();
@@ -76,7 +80,7 @@ class Globe {
         });
         
         this.globe = new THREE.Mesh(geometry, material);
-        this.scene.add(this.globe);
+        this.globeGroup.add(this.globe);  // Add to group instead of scene
         
         // Skip clouds for simpler implementation
         this.updateLoadingProgress(75);
@@ -105,7 +109,7 @@ class Globe {
         });
         
         this.atmosphere = new THREE.Mesh(geometry, material);
-        this.scene.add(this.atmosphere);
+        this.globeGroup.add(this.atmosphere);  // Add to group instead of scene
     }
     
     latLonToVector3(lat, lon, radius = 1) {
@@ -135,7 +139,7 @@ class Globe {
         
         marker.userData = { lat, lon, name, country, type, population };
         
-        this.scene.add(marker);
+        this.globeGroup.add(marker);  // Add to group instead of scene
         this.markerMeshes.push(marker);
         
         const markerData = { marker, lat, lon, name, country, type, population };

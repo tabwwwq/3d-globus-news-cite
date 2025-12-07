@@ -117,21 +117,11 @@ class GlobeControls {
         this.rotation.x += (this.targetRotation.x - this.rotation.x) * this.dampingFactor;
         this.rotation.y += (this.targetRotation.y - this.rotation.y) * this.dampingFactor;
         
-        if (this.globe.globe) {
-            this.globe.globe.rotation.y = this.rotation.y;
-            this.globe.globe.rotation.x = this.rotation.x;
+        // Rotate the entire globe group (includes globe, atmosphere, and all markers)
+        if (this.globe.globeGroup) {
+            this.globe.globeGroup.rotation.y = this.rotation.y;
+            this.globe.globeGroup.rotation.x = this.rotation.x;
         }
-        
-        if (this.globe.atmosphere) {
-            this.globe.atmosphere.rotation.y = this.rotation.y;
-            this.globe.atmosphere.rotation.x = this.rotation.x;
-        }
-        
-        // Rotate all markers with the globe
-        this.globe.markerMeshes.forEach(marker => {
-            marker.rotation.y = this.rotation.y;
-            marker.rotation.x = this.rotation.x;
-        });
     }
     
     zoomIn() {
