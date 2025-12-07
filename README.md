@@ -1,51 +1,46 @@
-# Interactive 3D Globe 🌍
+# Interactive World Map 🗺️
 
-A fully interactive 3D Earth globe built with Three.js that allows users to explore the world in a stunning 3D perspective, similar to Google Earth.
+An interactive 2D world map built with Leaflet.js and OpenStreetMap that allows users to explore 228+ cities worldwide with an intuitive interface.
 
-![Interactive 3D Globe](https://img.shields.io/badge/WebGL-Enabled-green)
-![Three.js](https://img.shields.io/badge/Three.js-r128-blue)
+![Leaflet](https://img.shields.io/badge/Leaflet-v1.9.4-green)
+![OpenStreetMap](https://img.shields.io/badge/OpenStreetMap-Free-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## 🌟 Features
 
 ### Core Functionality
-- **Realistic 3D Earth Rendering**: High-quality Earth textures with continents, oceans, and topographical details
-- **Enhanced Relief System**: Bump mapping and displacement for realistic terrain visualization
-- **Specular Mapping**: Realistic ocean reflections and highlights
+- **Interactive 2D World Map**: Built with Leaflet.js using OpenStreetMap tiles
+- **No API Keys Required**: Completely free OpenStreetMap integration
 - **Interactive Controls**:
-  - 🖱️ **Rotate**: Click and drag to rotate the globe in any direction
+  - 🖱️ **Pan**: Click and drag to move around the map
   - 🔍 **Zoom**: Mouse wheel or buttons to zoom in/out (supports pinch gestures on mobile)
-  - ↔️ **Pan**: Right-click and drag to pan the view
-- **Smooth Animations**: Fluid transitions and damped camera movements for a polished experience
+  - 📍 **Navigate**: Click markers to see city information
+- **Smooth Animations**: Fluid flyTo transitions when navigating to cities
 
-### Visual Effects
-- 🌍 High-resolution Earth texture maps (2K+)
-- 🗺️ Detailed relief and bump mapping for realistic terrain
-- 🌊 Specular maps for ocean reflections
-- ☁️ Animated cloud layer overlay
-- 🌌 Atmospheric glow effect around the globe
-- ⭐ Starfield background for space immersion
-- 💡 Realistic lighting and shadows
+### Map Features
+- 🗺️ OpenStreetMap tiles with global coverage
+- 🌍 Professional dark theme design
+- 📱 Fully responsive for mobile and desktop
+- ⚡ Fast loading with local library
+- 🎨 Clean, modern UI with dark theme
 
 ### Advanced Marker System
-- 📍 **228+ Cities Worldwide**: Comprehensive global coverage
+- 📍 **228 Cities Worldwide**: Comprehensive global coverage
 - 🎯 **Four-Level Hierarchy**:
-  - 🔴 **Capitals** (64): Largest markers, visible from far distances
-  - 🟠 **Major Cities** (84): Medium markers for cities over 1M population
-  - 🟡 **Cities** (49): Smaller markers for cities 100K-1M population
-  - 🟢 **Towns/Villages** (31): Smallest markers for smaller locations
-- 🔄 **Dynamic LOD System**: Markers appear/disappear based on zoom level
-- ✨ **Pulsing Animations**: Different animation speeds for each marker type
+  - 🔴 **Capitals** (64): Red markers, radius 8px
+  - 🟠 **Major Cities** (84): Orange markers, radius 6px
+  - 🟡 **Cities** (49): Yellow markers, radius 5px
+  - 🟢 **Towns/Villages** (31): Green markers, radius 4px
+- 💬 **Information Popups**: Click markers to see city details
 - 🎨 **Color-Coded Legend**: Visual guide for marker types
 
 ### Interactive Features
-- 🔍 **Location Search**: Search bar to find and navigate to any city
+- 🔍 **Location Search**: Search bar with autocomplete to find cities
 - 📊 **Real-time Information**:
-  - Current latitude and longitude display
-  - FPS counter for performance monitoring
+  - Current latitude and longitude display (cursor position)
   - Location popups with city details, type, and population
 - 🎯 **Clickable Markers**: Click on city markers to view detailed information
-- ⚡ **Optimized Performance**: Smooth 60 FPS with 200+ markers using InstancedMesh
+- ⚡ **Instant Loading**: No texture downloads required
 
 ### User Interface
 - Clean, modern dark-themed UI
@@ -92,41 +87,33 @@ This project uses vanilla JavaScript and loads Three.js from a CDN, so no build 
 ### Basic Controls
 
 #### Desktop
-- **Rotate Globe**: Left-click and drag
+- **Pan Map**: Click and drag
 - **Zoom In/Out**: Scroll mouse wheel or use +/- buttons
-- **Pan View**: Right-click and drag
 - **Reset View**: Click the ⟲ button
 
 #### Mobile
-- **Rotate Globe**: Single finger drag
-- **Zoom**: Pinch gesture (two fingers)
-- **Pan View**: Two finger drag
+- **Pan Map**: Single finger drag
+- **Zoom**: Pinch gesture (two fingers) or use +/- buttons
+- **Tap**: Click on markers to see information
 
 ### Searching for Locations
 
 1. Click on the search bar at the top of the control panel
 2. Type the name of a city or country
 3. Select from the dropdown results or press Enter
-4. The globe will automatically rotate and zoom to the selected location
-5. A popup will display information about the location
+4. The map will automatically pan and zoom to the selected location
+5. Click the marker to see detailed information
 
 ### Exploring Cities
 
-- City markers appear as small red pulsing spheres on the globe
-- Click on any marker to view city information
+- City markers appear as colored circles on the map
+- Click on any marker to view city information in a popup
 - The popup shows:
   - City name
   - Country
+  - City type (Capital, Major City, City, or Town)
+  - Population (if available)
   - Exact coordinates (latitude/longitude)
-
-### Monitoring Performance
-
-- The FPS (Frames Per Second) counter shows real-time rendering performance
-- Optimal performance is 60 FPS
-- Lower FPS may indicate:
-  - High GPU load
-  - Browser limitations
-  - Device performance constraints
 
 ## 🏗️ Project Structure
 
@@ -137,43 +124,44 @@ This project uses vanilla JavaScript and loads Three.js from a CDN, so no build 
 │   └── style.css       # Styling and responsive design
 ├── js/
 │   ├── main.js         # Application initialization and UI logic
-│   ├── globe.js        # 3D globe creation and rendering
+│   ├── globe.js        # Leaflet map creation and marker rendering
 │   ├── controls.js     # User interaction controls
-│   └── locations.js    # Location data and utility functions
-├── assets/
-│   └── textures/       # (Optional) Local texture storage
+│   └── locations.js    # Location data (228 cities) and search
+├── libs/
+│   └── leaflet/        # Leaflet.js library (local)
+│       ├── leaflet.js
+│       ├── leaflet.css
+│       └── images/     # Leaflet icons
+├── package.json        # NPM dependencies
 └── README.md           # This file
 ```
 
 ## 💻 Technologies Used
 
-- **[Three.js r128](https://threejs.org/)**: WebGL 3D library for rendering
-- **WebGL**: Graphics API for GPU-accelerated 3D rendering
-- **HTML5 Canvas**: Rendering surface
+- **[Leaflet.js v1.9.4](https://leafletjs.com/)**: Leading open-source library for interactive maps
+- **[OpenStreetMap](https://www.openstreetmap.org/)**: Free, collaborative map tiles
+- **HTML5**: Modern web structure
 - **Vanilla JavaScript (ES6+)**: No frameworks required
 - **CSS3**: Modern styling with animations and responsive design
 
-## 🎨 Textures & Assets
+## 🗺️ Map Tiles & Assets
 
-This project uses high-quality Earth textures from the Three.js examples repository:
-- **Earth Surface**: 2048x1024 texture with continents and oceans
-- **Earth Bump Map**: Normal map for topographical detail and terrain relief
-- **Earth Specular Map**: Specular highlights for realistic ocean reflections
-- **Cloud Layer**: Transparent cloud overlay texture
-
-All textures are loaded from CDN sources:
-- [Three.js GitHub Repository](https://github.com/mrdoob/three.js/tree/master/examples/textures/planets)
+This project uses OpenStreetMap tiles which are:
+- **Completely Free**: No API keys or registration required
+- **Community Maintained**: Updated by millions of contributors
+- **Global Coverage**: Worldwide map data
+- **Always Available**: No rate limits or quotas
 
 ### Marker System
 
-The application uses a sophisticated four-level marker system:
+The application uses a four-level marker system with Leaflet CircleMarkers:
 
-| Type | Color | Size | Population | Visibility Distance | Count |
-|------|-------|------|-----------|---------------------|-------|
-| Capital | Red (#ff3333) | Large (0.09) | Varies | Always visible (20+ units) | 64 |
-| Major City | Orange (#ff8c42) | Medium (0.065) | > 1M | Visible from 15+ units | 84 |
-| City | Yellow (#ffd700) | Small (0.045) | 100K-1M | Visible from 12+ units | 49 |
-| Village/Town | Green (#90ee90) | Tiny (0.025) | < 100K | Close zoom only (< 12 units) | 31 |
+| Type | Color | Radius (px) | Population | Count |
+|------|-------|------------|-----------|-------|
+| Capital | Red (#ff3333) | 8 | Varies | 64 |
+| Major City | Orange (#ff8c42) | 6 | > 1M | 84 |
+| City | Yellow (#ffd700) | 5 | 100K-1M | 49 |
+| Village/Town | Green (#90ee90) | 4 | < 100K | 31 |
 
 **Total Locations: 228**
 
@@ -201,32 +189,30 @@ In `js/globe.js`, modify the `markerConfig` object to customize marker appearanc
 ```javascript
 this.markerConfig = {
   capital: {
-    size: 0.09,              // Marker size
-    color: 0xff3333,         // Color (hex)
-    minDistance: 20,         // Visibility distance threshold
-    pulseSpeed: 0.004,       // Animation speed
-    glowIntensity: 1.5       // Glow effect intensity
+    radius: 8,              // Marker radius in pixels
+    fillColor: '#ff3333',   // Fill color
+    color: '#fff',          // Border color
+    weight: 2,              // Border width
+    opacity: 1,             // Border opacity
+    fillOpacity: 0.8        // Fill opacity
   },
   // ... other types
 }
 ```
 
-### Changing Globe Appearance
+### Changing Map Appearance
 
 In `js/globe.js`, modify:
-- `this.radius`: Globe size (default: 5)
-- `this.segments`: Polygon detail (default: 64, higher = smoother but slower)
-- `bumpScale`: Relief intensity (default: 0.1)
-- Texture URLs: Use custom Earth textures
-- Colors: Atmosphere and marker colors
+- Initial view center: `[20, 0]` (latitude, longitude)
+- Initial zoom level: `2`
+- Min/max zoom: `minZoom: 2, maxZoom: 18`
+- Tile provider: Change the tile layer URL for different map styles
 
 ### Adjusting Controls
 
 In `js/controls.js`, customize:
-- `rotateSpeed`: Rotation sensitivity
-- `zoomSpeed`: Zoom speed factor
-- `minDistance` / `maxDistance`: Zoom limits
-- `dampingFactor`: Smoothness of movements
+- `initialView`: Starting position and zoom
+- Map interactions are handled by Leaflet automatically
 
 ## 🌐 Browser Compatibility
 
@@ -239,7 +225,7 @@ In `js/controls.js`, customize:
 | Mobile Chrome | ✅ Full Support |
 | Mobile Safari | ✅ Full Support |
 
-**Note**: WebGL support is required. Very old browsers may not work.
+**Note**: Modern browsers with JavaScript enabled required.
 
 ## 📱 Mobile Responsiveness
 
@@ -251,38 +237,34 @@ The application is fully responsive and optimized for:
 
 Touch gestures are fully supported on mobile devices.
 
-## ⚡ Performance Optimization
+## ⚡ Performance
 
-- **Efficient Rendering**: InstancedMesh for rendering 200+ markers
-- **LOD System**: Distance-based marker visibility with smooth transitions
-- **Texture Optimization**: Uses appropriately sized textures (2K)
-- **Geometry Caching**: Meshes created once and reused
-- **RAF (RequestAnimationFrame)**: Smooth 60 FPS rendering
-- **Page Visibility API**: Pauses animation when tab is not visible
-- **Disposal Management**: Proper cleanup of Three.js objects
-- **Optimized Animations**: Efficient pulsing animations with minimal overhead
+- **Fast Loading**: No texture downloads, instant map display
+- **Efficient Rendering**: Leaflet handles 228 markers efficiently
+- **Responsive**: Smooth panning and zooming
+- **Lightweight**: Minimal dependencies with local Leaflet library
+- **Mobile Optimized**: Touch gestures work seamlessly
 
-### Performance Metrics
-- Maintains 60 FPS with 228 markers
-- Smooth fade transitions for marker LOD
-- Optimized raycasting for marker interaction
-- Minimal CPU/GPU overhead with instanced rendering
+### Performance Benefits
+- Instant page load (no large texture files)
+- Low memory footprint compared to 3D rendering
+- Works smoothly on mobile devices
+- No GPU requirements
 
 ## 🔜 Future Enhancements
 
 Potential features for future versions:
-- [ ] Night lights texture for shadow side of Earth
-- [ ] Satellite view mode
-- [ ] Real-time weather overlay
-- [ ] Day/night cycle animation
-- [ ] Flight path visualization between cities
+- [ ] Marker clustering for better performance at low zoom levels
+- [ ] Alternative tile providers (satellite view, terrain)
+- [ ] Custom marker icons for different city types
+- [ ] Heatmap visualization of population density
+- [ ] Route/path drawing between cities
 - [ ] Distance measurement tool
-- [ ] Multiple globe themes (political, terrain, etc.)
 - [ ] User-added custom markers with persistence
-- [ ] Export/share camera views
-- [ ] VR mode support
-- [ ] Quality settings (high/medium/low)
-- [ ] Marker filtering by type
+- [ ] Export/share map views
+- [ ] Dark mode map tiles
+- [ ] Marker filtering by type or population
+- [ ] GeoJSON data export
 
 ## 🤝 Contributing
 
@@ -300,9 +282,9 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## 🙏 Credits
 
-- **Three.js Team**: For the amazing 3D library
-- **NASA**: For Earth texture references
-- **Earth Textures**: Sourced from Three.js examples repository
+- **Leaflet.js Team**: For the excellent open-source mapping library
+- **OpenStreetMap Contributors**: For the free, collaborative map data
+- **Community**: For continuous improvements and contributions
 
 ## 📧 Contact
 
@@ -310,4 +292,4 @@ Project Link: [https://github.com/tabwwwq/3d-globus-news-cite](https://github.co
 
 ---
 
-Made with ❤️ and JavaScript
+Made with ❤️ using Leaflet.js and OpenStreetMap
