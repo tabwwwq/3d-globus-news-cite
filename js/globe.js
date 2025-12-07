@@ -70,13 +70,17 @@ class Globe {
     createGlobe() {
         const geometry = new THREE.SphereGeometry(1, 64, 64);
         
-        // Use a simple material with solid color
-        // Earth texture can be added later if needed
+        // Load realistic Earth textures
+        const textureLoader = new THREE.TextureLoader();
+        const earthTexture = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
+        const bumpTexture = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-topology.png');
+        
         const material = new THREE.MeshPhongMaterial({
-            color: 0x2233aa,
-            emissive: 0x112244,
-            shininess: 5,
-            specular: new THREE.Color(0x333333)
+            map: earthTexture,
+            bumpMap: bumpTexture,
+            bumpScale: 0.05,
+            specular: new THREE.Color(0x333333),
+            shininess: 5
         });
         
         this.globe = new THREE.Mesh(geometry, material);

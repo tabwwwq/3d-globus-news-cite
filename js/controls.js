@@ -15,10 +15,10 @@ class GlobeControls {
         this.rotation = { x: 0, y: 0 };
         this.targetRotation = { x: 0, y: 0 };
         
-        this.minDistance = 1.5;
-        this.maxDistance = 5;
+        this.minDistance = 1.2;
+        this.maxDistance = 6;
         this.rotationSpeed = 0.005;
-        this.zoomSpeed = 0.1;
+        this.zoomSpeed = 0.3;
         this.dampingFactor = 0.1;
         
         this.setupEventListeners();
@@ -125,14 +125,14 @@ class GlobeControls {
     }
     
     zoomIn() {
-        const newZ = this.camera.position.length() - 0.3;
+        const newZ = this.camera.position.length() - 0.5;
         const clampedZ = Math.max(this.minDistance, newZ);
         const scale = clampedZ / this.camera.position.length();
         this.camera.position.multiplyScalar(scale);
     }
     
     zoomOut() {
-        const newZ = this.camera.position.length() + 0.3;
+        const newZ = this.camera.position.length() + 0.5;
         const clampedZ = Math.min(this.maxDistance, newZ);
         const scale = clampedZ / this.camera.position.length();
         this.camera.position.multiplyScalar(scale);
