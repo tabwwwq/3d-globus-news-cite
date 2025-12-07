@@ -15,10 +15,10 @@ class GlobeControls {
         this.rotation = { x: 0, y: 0 };
         this.targetRotation = { x: 0, y: 0 };
         
-        this.minDistance = 1.2;
+        this.minDistance = 0.8;  // Allow closer zoom for surface detail
         this.maxDistance = 6;
         this.rotationSpeed = 0.005;
-        this.zoomSpeed = 0.3;
+        this.zoomSpeed = 0.2;      // Smoother zoom speed
         this.dampingFactor = 0.1;
         
         this.setupEventListeners();
@@ -78,9 +78,10 @@ class GlobeControls {
         
         this.camera.position.multiplyScalar(scale);
         
-        // Update marker scales and texture quality
+        // Update marker scales, texture quality, and geometry LOD
         this.globe.updateMarkerScales(clampedZ);
         this.globe.updateTextureQuality(clampedZ);
+        this.globe.updateGeometryLOD(clampedZ);
     }
     
     onTouchStart(event) {
@@ -134,9 +135,10 @@ class GlobeControls {
         const scale = clampedZ / this.camera.position.length();
         this.camera.position.multiplyScalar(scale);
         
-        // Update marker scales and texture quality
+        // Update marker scales, texture quality, and geometry LOD
         this.globe.updateMarkerScales(clampedZ);
         this.globe.updateTextureQuality(clampedZ);
+        this.globe.updateGeometryLOD(clampedZ);
     }
     
     zoomOut() {
@@ -145,9 +147,10 @@ class GlobeControls {
         const scale = clampedZ / this.camera.position.length();
         this.camera.position.multiplyScalar(scale);
         
-        // Update marker scales and texture quality
+        // Update marker scales, texture quality, and geometry LOD
         this.globe.updateMarkerScales(clampedZ);
         this.globe.updateTextureQuality(clampedZ);
+        this.globe.updateGeometryLOD(clampedZ);
     }
     
     reset() {
@@ -162,7 +165,7 @@ class GlobeControls {
         this.targetRotation.y = -theta + Math.PI;
         this.targetRotation.x = -(phi - Math.PI / 2);
         
-        const targetZ = 1.8;
+        const targetZ = 1.5;  // Zoom closer for better detail view
         const currentZ = this.camera.position.length();
         const steps = 60;
         let step = 0;
@@ -177,9 +180,10 @@ class GlobeControls {
                 const scale = newZ / this.camera.position.length();
                 this.camera.position.multiplyScalar(scale);
                 
-                // Update marker scales and texture quality during animation
+                // Update marker scales, texture quality, and geometry LOD during animation
                 this.globe.updateMarkerScales(newZ);
                 this.globe.updateTextureQuality(newZ);
+                this.globe.updateGeometryLOD(newZ);
                 
                 requestAnimationFrame(animate);
             }
