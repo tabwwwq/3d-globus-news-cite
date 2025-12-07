@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Interactive 3D Globe - Explore Earth in 3D with rotation, zoom, and location search">
-    <title>Interactive 3D Globe</title>
+    <meta name="description" content="Interactive World Map - Explore Earth with Leaflet, zoom, and location search">
+    <title>Interactive World Map</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -24,7 +26,7 @@
 
     <!-- UI Controls -->
     <div class="controls-panel">
-        <h1>Interactive 3D Globe</h1>
+        <h1>Interactive World Map</h1>
         
         <!-- Search Bar -->
         <div class="search-container">
@@ -50,19 +52,15 @@
                 <span class="label">Longitude:</span>
                 <span id="lon-display">0°</span>
             </div>
-            <div class="info-item">
-                <span class="label">FPS:</span>
-                <span id="fps-display">60</span>
-            </div>
         </div>
 
         <!-- Instructions -->
         <div class="instructions">
             <h3>Controls</h3>
             <ul>
-                <li><strong>Rotate:</strong> Left-click and drag</li>
+                <li><strong>Pan:</strong> Click and drag</li>
                 <li><strong>Zoom:</strong> Mouse wheel or +/- buttons</li>
-                <li><strong>Pan:</strong> Right-click and drag</li>
+                <li><strong>Click:</strong> Select city marker for details</li>
             </ul>
         </div>
         
@@ -98,8 +96,8 @@
         <p id="popup-coords"></p>
     </div>
 
-    <!-- Three.js Library from unpkg CDN -->
-    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <!-- Leaflet Library from unpkg CDN -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <!-- Application Scripts -->
     <script src="js/locations.js"></script>

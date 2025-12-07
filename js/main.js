@@ -1,15 +1,11 @@
 /**
  * Main application logic
- * Initializes the globe, controls, and UI interactions
+ * Initializes the map, controls, and UI interactions
  */
 
 // Global variables
 let globe;
 let controls;
-let animationId;
-let fps = 0;
-let lastTime = Date.now();
-let frameCount = 0;
 
 /**
  * Initialize the application
@@ -18,11 +14,11 @@ function init() {
     // Create container
     const container = document.getElementById('container');
     
-    // Initialize globe
+    // Initialize map
     globe = new Globe(container);
     
-    // Initialize controls
-    controls = new GlobeControls(globe.camera, container, globe);
+    // Initialize controls (simplified for Leaflet)
+    controls = new GlobeControls(null, container, globe);
     
     // Add markers for all major cities
     addCityMarkers();
@@ -30,17 +26,14 @@ function init() {
     // Setup UI event listeners
     setupUIListeners();
     
-    // Start animation loop
-    animate();
-    
     // Hide loading screen after a short delay
     setTimeout(() => {
         hideLoadingScreen();
-    }, 1500);
+    }, 1000);
 }
 
 /**
- * Add city markers to the globe
+ * Add city markers to the map
  */
 function addCityMarkers() {
     LOCATIONS.forEach(location => {
@@ -54,9 +47,17 @@ function addCityMarkers() {
         );
     });
     
-    // Initialize instanced meshes after all markers are added
+    // Initialize markers (compatibility)
     globe.initializeInstancedMarkers();
 }
+
+/**
+ * Global function to update mouse coordinates
+ */
+window.updateMouseCoordinates = function(lat, lng) {
+    document.getElementById('lat-display').textContent = lat.toFixed(2) + '°';
+    document.getElementById('lon-display').textContent = lng.toFixed(2) + '°';
+};
 
 /**
  * Setup UI event listeners
@@ -106,24 +107,16 @@ function setupUIListeners() {
         }
     });
     
-    // Marker click detection
-    const container = document.getElementById('container');
-    container.addEventListener('click', (e) => {
-        const markerData = globe.getIntersectedMarker(e.clientX, e.clientY);
-        if (markerData) {
-            showLocationPopup(markerData);
-        }
-    });
+    // Marker click is handled by Leaflet popups now
+    // No need for manual click detection
     
-    // Close popup
-    document.getElementById('close-popup').addEventListener('click', () => {
-        hideLocationPopup();
-    });
-    
-    // Update coordinates display
-    setInterval(() => {
-        updateCoordinatesDisplay();
-    }, 100);
+    // Close popup (legacy - Leaflet handles this)
+    const closePopupBtn = document.getElementById('close-popup');
+    if (closePopupBtn) {
+        closePopupBtn.addEventListener('click', () => {
+            hideLocationPopup();
+        });
+    }
 }
 
 /**
@@ -183,67 +176,25 @@ function navigateToLocation(location) {
 }
 
 /**
- * Show location popup
+ * Navigate to a specific location
+ */
+function navigateToLocation(location) {
+    controls.animateToLocation(location.lat, location.lon);
+    // Leaflet popups are handled by the marker itself
+}
+
+/**
+ * Show location popup (legacy - Leaflet handles popups)
  */
 function showLocationPopup(location) {
-    const popup = document.getElementById('location-popup');
-    const title = document.getElementById('popup-title');
-    const country = document.getElementById('popup-country');
-    const coords = document.getElementById('popup-coords');
-    
-    title.textContent = location.name;
-    
-    // Add type and population info
-    let countryText = location.country;
-    if (location.type) {
-        const typeLabels = {
-            capital: 'Capital',
-            major: 'Major City',
-            city: 'City',
-            village: 'Town/Village'
-        };
-        countryText += ` • ${typeLabels[location.type]}`;
-    }
-    if (location.population) {
-        const popMillions = location.population / 1000000;
-        const popThousands = location.population / 1000;
-        
-        if (location.population >= 1000000) {
-            countryText += ` • ${popMillions.toFixed(1)}M people`;
-        } else {
-            countryText += ` • ${Math.round(popThousands)}K people`;
-        }
-    }
-    
-    country.textContent = countryText;
-    coords.textContent = `${location.lat.toFixed(4)}°, ${location.lon.toFixed(4)}°`;
-    
-    popup.classList.add('visible');
+    // Not used with Leaflet - markers have built-in popups
 }
 
 /**
- * Hide location popup
+ * Hide location popup (legacy)
  */
 function hideLocationPopup() {
-    const popup = document.getElementById('location-popup');
-    popup.classList.remove('visible');
-}
-
-/**
- * Update coordinates display based on camera view
- */
-function updateCoordinatesDisplay() {
-    // Calculate the center point of the globe based on camera rotation
-    const lat = -(controls.currentRotation.x * 180 / Math.PI);
-    const lon = -(controls.currentRotation.y * 180 / Math.PI);
-    
-    // Normalize longitude to -180 to 180
-    let normalizedLon = ((lon + 180) % 360) - 180;
-    if (normalizedLon < -180) normalizedLon += 360;
-    
-    // Update display
-    document.getElementById('lat-display').textContent = lat.toFixed(2) + '°';
-    document.getElementById('lon-display').textContent = normalizedLon.toFixed(2) + '°';
+    // Not used with Leaflet
 }
 
 /**
@@ -255,45 +206,6 @@ function hideLoadingScreen() {
     setTimeout(() => {
         loadingScreen.style.display = 'none';
     }, 500);
-}
-
-/**
- * Calculate FPS
- */
-function calculateFPS() {
-    frameCount++;
-    const currentTime = Date.now();
-    const elapsed = currentTime - lastTime;
-    
-    if (elapsed >= 1000) {
-        fps = Math.round((frameCount * 1000) / elapsed);
-        document.getElementById('fps-display').textContent = fps;
-        frameCount = 0;
-        lastTime = currentTime;
-    }
-}
-
-/**
- * Animation loop
- */
-function animate() {
-    animationId = requestAnimationFrame(animate);
-    
-    // Update controls
-    controls.update();
-    
-    // Animate globe rotation
-    globe.animate();
-    
-    // Update marker LOD based on camera distance
-    const cameraDistance = globe.camera.position.z;
-    globe.updateMarkerLOD(cameraDistance);
-    
-    // Render scene
-    globe.render();
-    
-    // Calculate FPS
-    calculateFPS();
 }
 
 /**
@@ -309,17 +221,3 @@ if (document.readyState === 'loading') {
 } else {
     init();
 }
-
-// Handle page visibility for performance
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        if (animationId !== null) {
-            cancelAnimationFrame(animationId);
-            animationId = null;
-        }
-    } else {
-        if (animationId === null) {
-            animate();
-        }
-    }
-});
