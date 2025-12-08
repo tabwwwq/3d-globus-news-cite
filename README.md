@@ -19,10 +19,12 @@ An interactive 3D Earth globe built with Three.js that allows users to explore 5
 
 ### 3D Globe Features
 - 🌍 Beautiful blue Earth sphere with realistic lighting
+- 🗺️ **Country Borders**: Clear, visible borders for all countries with automatic detail enhancement
 - ✨ Atmospheric glow effect around the globe
+- 🔍 **Multi-Level LOD**: Dynamic geometry and border detail based on zoom level
 - 💫 Smooth rotation with drag controls
 - 📱 Fully responsive for mobile and desktop
-- ⚡ Fast rendering with WebGL
+- ⚡ Fast rendering with WebGL and optimized LOD system
 - 🎨 Clean, modern UI with dark theme
 
 ### Advanced Marker System
@@ -127,8 +129,12 @@ This project uses vanilla JavaScript and loads Three.js from a local file, so no
 ├── js/
 │   ├── main.js         # Application initialization and UI logic
 │   ├── globe.js        # Three.js 3D globe creation and rendering
+│   ├── borders.js      # Country border loading and LOD management
 │   ├── controls.js     # User interaction controls (rotation, zoom)
 │   └── locations.js    # Location data (539 cities) and search
+├── data/
+│   ├── countries-110m.geojson  # Low-detail country borders (820KB)
+│   └── countries-50m.geojson   # Medium-detail country borders (3MB)
 ├── libs/
 │   └── three/          # Three.js library (local r128)
 │       ├── three.js
@@ -147,12 +153,32 @@ This project uses vanilla JavaScript and loads Three.js from a local file, so no
 
 ## 🌐 Globe Implementation
 
-This project uses Three.js for 3D rendering with:
-- **Sphere Geometry**: High-resolution sphere (64 segments) for smooth globe
+This project uses Three.js for 3D rendering with advanced features:
+- **Sphere Geometry with LOD**: Dynamic geometry detail (64/128/256 segments) based on zoom level
 - **Phong Material**: Blue Earth with emissive lighting for depth
 - **Shader Material**: Custom atmospheric glow effect
 - **Group System**: Efficient rotation of globe + markers as single unit
 - **Raycasting**: Precise mouse interaction detection
+- **Country Borders**: Dynamic border rendering with multi-level detail
+
+### Country Borders System
+
+The globe features a sophisticated border rendering system with automatic level-of-detail (LOD) management:
+
+- **Multi-Resolution Data**: Uses Natural Earth GeoJSON data
+  - Low detail (110m scale): Optimized for far view (< 1MB)
+  - Medium detail (50m scale): Enhanced detail for close view (3MB)
+- **Automatic LOD Switching**: Borders automatically upgrade/downgrade based on camera distance
+  - Distance > 4.0 units: Low detail borders (110m)
+  - Distance ≤ 4.0 units: Medium detail borders (50m)
+- **Visual Styling**: 
+  - Semi-transparent white lines for visibility against ocean
+  - Adaptive opacity based on zoom level
+  - Borders rotate with globe for smooth interaction
+- **Performance Optimized**: 
+  - Asynchronous data loading
+  - Efficient LineBasicMaterial
+  - Pre-loaded geometry for instant switching
 
 ### Marker System
 
@@ -198,6 +224,32 @@ this.markerConfig = {
 }
 ```
 
+### Country Border Customization
+
+In `js/borders.js`, modify the `borderStyle` object to customize border appearance:
+
+```javascript
+this.borderStyle = {
+    far: {
+        color: 0xcccccc,    // Light gray for far view
+        opacity: 0.25,      // Transparency (0.0 - 1.0)
+        linewidth: 1        // Line thickness
+    },
+    medium: {
+        color: 0xffffff,    // White for close view
+        opacity: 0.35,
+        linewidth: 1.5
+    }
+};
+```
+
+To adjust LOD switching distance:
+```javascript
+this.lodThresholds = {
+    medium: 4.0  // Distance at which to switch to medium detail
+};
+```
+
 ### Changing Globe Appearance
 
 In `js/globe.js`, modify:
@@ -239,21 +291,37 @@ Touch gestures are fully supported on mobile devices.
 ## ⚡ Performance
 
 - **Fast Loading**: Local Three.js library, instant startup
-- **Efficient Rendering**: WebGL hardware acceleration
+- **Efficient Rendering**: WebGL hardware acceleration with dynamic LOD
+- **Multi-Level Detail**: Automatic geometry and border detail adjustment (64/128/256 segments)
+- **Smart Border Loading**: Asynchronous data loading with instant LOD switching
 - **Optimized Markers**: 539 markers rendered efficiently using THREE.Group
 - **Smooth Rotation**: Damped controls for fluid user experience
 - **Responsive**: Smooth performance on desktop and mobile
-- **Lightweight**: No external API calls or texture downloads
+- **Lightweight**: Minimal memory footprint with efficient resource management
 
 ### Performance Benefits
 - Instant page load (all assets local)
-- Low memory footprint with optimized rendering
+- Low memory footprint with optimized rendering and LOD system
 - Hardware-accelerated 3D graphics
 - Efficient group-based transformations
+- Adaptive detail prevents over-rendering at distance
+
+### LOD System Details
+
+The globe implements a sophisticated Level-of-Detail system:
+
+| Zoom Level | Distance | Geometry Segments | Border Detail | Texture Quality |
+|------------|----------|-------------------|---------------|-----------------|
+| Far | > 4.0 | 64×64 | 110m (simplified) | 2K |
+| Medium | 2.0 - 4.0 | 128×128 | 50m (enhanced) | 4K |
+| Near | < 2.0 | 256×256 | 50m (enhanced) | 8K |
+
+This ensures optimal performance while maintaining high visual quality when zoomed in.
 
 ## 🔜 Future Enhancements
 
 Potential features for future versions:
+- [x] Country boundaries overlay (✅ Implemented!)
 - [ ] Earth texture maps (NASA Blue Marble or similar)
 - [ ] Day/night cycle visualization
 - [ ] Cloud layer animation
