@@ -77,6 +77,9 @@ class Globe {
             near: new THREE.SphereGeometry(1, 256, 256)
         };
         
+        // Border manager for country boundaries
+        this.borderManager = null;
+        
         this.init();
     }
     
@@ -111,6 +114,7 @@ class Globe {
         this.addLights();
         this.createGlobe();
         this.createAtmosphere();
+        this.initBorders();
         
         window.addEventListener('resize', () => this.onWindowResize());
         this.renderer.domElement.addEventListener('mousemove', (e) => this.onMouseMove(e));
@@ -364,6 +368,15 @@ class Globe {
         
         this.atmosphere = new THREE.Mesh(geometry, material);
         this.globeGroup.add(this.atmosphere);
+    }
+    
+    /**
+     * Initialize country borders system
+     */
+    initBorders() {
+        // Create border manager and load border data
+        this.borderManager = new BorderManager(this);
+        this.borderManager.init();
     }
     
     latLonToVector3(lat, lon, radius = 1) {
@@ -696,5 +709,10 @@ class Globe {
         
         const segments = this.geometryLOD[targetLevel].segments;
         console.log(`Updated geometry to ${targetLevel} detail (${segments}x${segments} segments)`);
+        
+        // Update border LOD to match geometry level
+        if (this.borderManager) {
+            this.borderManager.updateBorderLOD(cameraDistance);
+        }
     }
 }
