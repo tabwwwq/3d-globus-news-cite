@@ -159,11 +159,12 @@ class GlobeControls {
     }
     
     animateToLocation(lat, lon, duration = 2000) {
-        const phi = (90 - lat) * (Math.PI / 180);
-        const theta = (lon + 180) * (Math.PI / 180);
+        // Convert lat/lon to radians and calculate proper rotation
+        // For Y rotation (longitude): rotate globe so city faces camera (looking down -Z axis)
+        this.targetRotation.y = -lon * (Math.PI / 180);
         
-        this.targetRotation.y = -theta + Math.PI;
-        this.targetRotation.x = -(phi - Math.PI / 2);
+        // For X rotation (latitude): tilt globe so city is at equator level in front of camera
+        this.targetRotation.x = lat * (Math.PI / 180);
         
         const targetZ = 1.5;  // Zoom closer for better detail view
         const currentZ = this.camera.position.length();

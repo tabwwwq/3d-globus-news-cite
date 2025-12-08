@@ -393,6 +393,105 @@ body {
     color: #4da6ff;
 }
 
+/* News Section Styles */
+.news-section {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(77, 166, 255, 0.3);
+}
+
+.news-section h4 {
+    color: #4da6ff;
+    font-size: 16px;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.news-list {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+/* Custom scrollbar for news list */
+.news-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.news-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.news-list::-webkit-scrollbar-thumb {
+    background: rgba(77, 166, 255, 0.5);
+    border-radius: 3px;
+}
+
+.news-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(77, 166, 255, 0.7);
+}
+
+.news-item {
+    margin-bottom: 12px;
+    padding: 10px;
+    background: rgba(77, 166, 255, 0.1);
+    border-radius: 6px;
+    border-left: 3px solid #4da6ff;
+    transition: all 0.2s ease;
+}
+
+.news-item:hover {
+    background: rgba(77, 166, 255, 0.2);
+    transform: translateX(2px);
+}
+
+.news-item a {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.news-title {
+    color: #fff;
+    font-size: 13px;
+    line-height: 1.4;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.news-date {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+}
+
+.news-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+}
+
+.news-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(77, 166, 255, 0.3);
+    border-top-color: #4da6ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+}
+
+.news-empty {
+    padding: 20px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 13px;
+    font-style: italic;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .controls-panel {
@@ -418,6 +517,12 @@ body {
     .location-popup {
         min-width: 280px;
         max-width: 90vw;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    
+    .news-list {
+        max-height: 200px;
     }
 }
 
