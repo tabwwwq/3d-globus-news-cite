@@ -1,6 +1,28 @@
 /**
  * Country Borders Module
- * Handles loading and rendering of country borders on the 3D globe with LOD support
+ * 
+ * Handles loading and rendering of country borders on the 3D globe with automatic
+ * Level-of-Detail (LOD) management for optimal performance and visual quality.
+ * 
+ * Features:
+ * - Multi-resolution GeoJSON data loading (110m and 50m scale)
+ * - Automatic LOD switching based on camera distance
+ * - Efficient Three.js Line rendering with optimized materials
+ * - Asynchronous data loading to prevent blocking
+ * - Integration with globe rotation and zoom systems
+ * 
+ * Data Sources:
+ * - Low detail: Natural Earth 110m countries (simplified, ~820KB)
+ * - Medium detail: Natural Earth 50m countries (detailed, ~3MB)
+ * 
+ * Usage:
+ *   const borderManager = new BorderManager(globeInstance);
+ *   await borderManager.init();
+ *   // Borders will automatically adjust detail based on camera distance
+ * 
+ * LOD Thresholds:
+ * - Distance > 4.0: Low detail borders (110m scale)
+ * - Distance ≤ 4.0: Medium detail borders (50m scale)
  */
 
 class BorderManager {
