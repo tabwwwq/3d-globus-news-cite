@@ -477,7 +477,96 @@ class Globe {
         
         coords.textContent = coordsText;
         coords.style.whiteSpace = 'pre-line';
+        
+        // Display news for this city
+        this.displayCityNews(data.name);
+        
         popup.classList.add('visible');
+    }
+    
+    /**
+     * Display news for a specific city in the popup
+     * @param {string} cityName - Name of the city
+     */
+    displayCityNews(cityName) {
+        const newsSection = document.getElementById('popup-news-section');
+        const newsLoading = document.getElementById('news-loading');
+        const newsList = document.getElementById('news-list');
+        const newsEmpty = document.getElementById('news-empty');
+        
+        // Show news section
+        if (newsSection) {
+            newsSection.style.display = 'block';
+        }
+        
+        // Check if newsManager is available
+        if (typeof newsManager === 'undefined') {
+            newsLoading.style.display = 'none';
+            newsList.innerHTML = '';
+            newsEmpty.style.display = 'block';
+            return;
+        }
+        
+        // Show loading state if news is being fetched
+        if (newsManager.isLoadingNews()) {
+            newsLoading.style.display = 'flex';
+            newsList.innerHTML = '';
+            newsEmpty.style.display = 'none';
+            return;
+        }
+        
+        // Get news for this city
+        const cityNews = newsManager.getNewsForCity(cityName);
+        
+        // Hide loading
+        newsLoading.style.display = 'none';
+        
+        // Display news or empty message
+        if (cityNews.length === 0) {
+            newsList.innerHTML = '';
+            newsEmpty.style.display = 'block';
+        } else {
+            newsEmpty.style.display = 'none';
+            
+            // Build news list HTML
+            const newsHTML = cityNews.map(news => `
+                <div class="news-item">
+                    <a href="${news.link}" target="_blank" rel="noopener noreferrer">
+                        <div class="news-title">${news.title}</div>
+                        <div class="news-date">${this.formatNewsDate(news.pubDate)}</div>
+                    </a>
+                </div>
+            `).join('');
+            
+            newsList.innerHTML = newsHTML;
+        }
+    }
+    
+    /**
+     * Format news date for display
+     * @param {string} dateString - ISO date string
+     * @returns {string} Formatted date
+     */
+    formatNewsDate(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        
+        if (diffHours < 1) {
+            return 'Just now';
+        } else if (diffHours < 24) {
+            return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        } else if (diffDays < 7) {
+            return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+        } else {
+            return date.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric',
+                year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+            });
+        }
     }
     
     animate() {

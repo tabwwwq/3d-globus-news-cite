@@ -92,6 +92,19 @@
         <h3 id="popup-title"></h3>
         <p id="popup-country"></p>
         <p id="popup-coords"></p>
+        
+        <!-- News Section -->
+        <div id="popup-news-section" class="news-section">
+            <h4>Related News</h4>
+            <div id="news-loading" class="news-loading" style="display: none;">
+                <div class="news-spinner"></div>
+                <span>Loading news...</span>
+            </div>
+            <div id="news-list" class="news-list"></div>
+            <div id="news-empty" class="news-empty" style="display: none;">
+                No recent news available for this location
+            </div>
+        </div>
     </div>
 
     <!-- Three.js Library (local) -->
@@ -99,6 +112,7 @@
     
     <!-- Application Scripts -->
     <script src="js/locations.js"></script>
+    <script src="js/news.js"></script>
     <script src="js/borders.js"></script>
     <script src="js/globe.js"></script>
     <script src="js/controls.js"></script>

@@ -15,6 +15,11 @@ function init() {
     addCityMarkers();
     setupUIListeners();
     
+    // Initialize news manager and start auto-refresh
+    if (typeof newsManager !== 'undefined') {
+        newsManager.startAutoRefresh();
+    }
+    
     setTimeout(() => {
         hideLoadingScreen();
     }, 1500);
