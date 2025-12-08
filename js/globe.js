@@ -487,6 +487,14 @@ class Globe {
     /**
      * Display news for a specific city in the popup
      * @param {string} cityName - Name of the city
+     * 
+     * Expected news object structure from newsManager:
+     * {
+     *   title: string,      // News headline
+     *   link: string,       // URL to full article
+     *   pubDate: string,    // ISO date string
+     *   description: string // Short description (HTML stripped)
+     * }
      */
     displayCityNews(cityName) {
         const newsSection = document.getElementById('popup-news-section');

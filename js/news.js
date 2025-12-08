@@ -18,6 +18,7 @@ class NewsManager {
         // Cache settings
         this.lastFetchTime = null;
         this.CACHE_DURATION = 10 * 60 * 1000; // 10 minutes in milliseconds
+        this.AUTO_REFRESH_INTERVAL = 60 * 1000; // Check every minute
         
         // Loading state
         this.isLoading = false;
@@ -28,11 +29,13 @@ class NewsManager {
         
         // City names from LOCATIONS for matching
         this.cityNames = [];
+        this.cityRegexMap = new Map(); // Pre-compiled regex patterns
         this.initializeCityNames();
     }
     
     /**
      * Extract city names from LOCATIONS array for matching
+     * Pre-compiles regex patterns for performance
      */
     initializeCityNames() {
         if (typeof LOCATIONS !== 'undefined') {
@@ -42,6 +45,13 @@ class NewsManager {
                 lat: loc.lat,
                 lon: loc.lon
             }));
+            
+            // Pre-compile regex patterns for all cities
+            this.cityNames.forEach(city => {
+                const cityNameLower = city.name.toLowerCase();
+                const regex = new RegExp(`\\b${this.escapeRegex(cityNameLower)}\\b`, 'i');
+                this.cityRegexMap.set(city.name, regex);
+            });
         }
     }
     
@@ -109,16 +119,11 @@ class NewsManager {
             // Combine title and description for better city matching
             const searchText = `${item.title} ${item.description}`.toLowerCase();
             
-            // Check each city name
+            // Check each city name using pre-compiled regex
             this.cityNames.forEach(city => {
-                // Match city name (case-insensitive, whole word)
-                const cityNameLower = city.name.toLowerCase();
+                const regex = this.cityRegexMap.get(city.name);
                 
-                // Create regex for whole word matching
-                // This prevents partial matches like "york" matching "New York"
-                const regex = new RegExp(`\\b${this.escapeRegex(cityNameLower)}\\b`, 'i');
-                
-                if (regex.test(searchText)) {
+                if (regex && regex.test(searchText)) {
                     // Initialize array if first news for this city
                     if (!this.cityNews[city.name]) {
                         this.cityNews[city.name] = [];
@@ -201,7 +206,7 @@ class NewsManager {
                 console.log('Auto-refreshing news...');
                 this.fetchNews();
             }
-        }, 60000); // Check every minute
+        }, this.AUTO_REFRESH_INTERVAL);
     }
     
     /**
