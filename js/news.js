@@ -12,6 +12,9 @@ class NewsManager {
         // - Caching news on server-side to reduce API dependency
         this.RSS_PROXY_URL = 'https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/news/world/rss.xml';
         
+        // Debug mode (set to false in production)
+        this.DEBUG = false;
+        
         // News storage: { cityName: [news items] }
         this.cityNews = {};
         
@@ -26,6 +29,10 @@ class NewsManager {
         
         // Auto-refresh interval ID for cleanup
         this.refreshIntervalId = null;
+        
+        // Page visibility tracking
+        this.isPageVisible = true;
+        this.setupVisibilityTracking();
         
         // City names from LOCATIONS for matching
         this.cityNames = [];
@@ -56,18 +63,32 @@ class NewsManager {
     }
     
     /**
+     * Setup page visibility tracking to pause auto-refresh when tab is hidden
+     */
+    setupVisibilityTracking() {
+        if (typeof document.hidden !== 'undefined') {
+            document.addEventListener('visibilitychange', () => {
+                this.isPageVisible = !document.hidden;
+                if (this.DEBUG) {
+                    console.log(`Page visibility changed: ${this.isPageVisible ? 'visible' : 'hidden'}`);
+                }
+            });
+        }
+    }
+    
+    /**
      * Fetch news from BBC RSS feed
      * @returns {Promise<boolean>} True if successful, false otherwise
      */
     async fetchNews() {
         // Check if cache is still valid
         if (this.lastFetchTime && (Date.now() - this.lastFetchTime) < this.CACHE_DURATION) {
-            console.log('Using cached news data');
+            if (this.DEBUG) console.log('Using cached news data');
             return true;
         }
         
         if (this.isLoading) {
-            console.log('News fetch already in progress');
+            if (this.DEBUG) console.log('News fetch already in progress');
             return false;
         }
         
@@ -75,11 +96,26 @@ class NewsManager {
         this.fetchError = null;
         
         try {
-            console.log('Fetching BBC news...');
-            const response = await fetch(this.RSS_PROXY_URL);
+            if (this.DEBUG) console.log('Fetching BBC news...');
+            
+            // Add timeout to prevent hanging requests
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+            
+            const response = await fetch(this.RSS_PROXY_URL, {
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Validate content type
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Invalid response content type');
             }
             
             const data = await response.json();
@@ -94,8 +130,10 @@ class NewsManager {
             this.lastFetchTime = Date.now();
             this.isLoading = false;
             
-            console.log(`Successfully fetched ${data.items.length} news items`);
-            console.log(`Matched news to ${Object.keys(this.cityNews).length} cities`);
+            if (this.DEBUG) {
+                console.log(`Successfully fetched ${data.items.length} news items`);
+                console.log(`Matched news to ${Object.keys(this.cityNews).length} cities`);
+            }
             
             return true;
             
@@ -172,6 +210,13 @@ class NewsManager {
     stripHtmlTags(html) {
         // Use DOMParser for safe HTML parsing
         const doc = new DOMParser().parseFromString(html, 'text/html');
+        
+        // Validate no script elements present
+        if (doc.querySelector('script')) {
+            console.warn('Script tag detected in HTML content, sanitizing');
+            return '';
+        }
+        
         return doc.body.textContent || '';
     }
     
@@ -202,8 +247,9 @@ class NewsManager {
         
         // Set up interval for automatic refresh and store ID for cleanup
         this.refreshIntervalId = setInterval(() => {
-            if (this.needsRefresh()) {
-                console.log('Auto-refreshing news...');
+            // Only refresh if page is visible and cache needs refresh
+            if (this.isPageVisible && this.needsRefresh()) {
+                if (this.DEBUG) console.log('Auto-refreshing news...');
                 this.fetchNews();
             }
         }, this.AUTO_REFRESH_INTERVAL);

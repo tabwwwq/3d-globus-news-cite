@@ -541,6 +541,12 @@ class Globe {
             
             // Build news items with safe DOM manipulation
             cityNews.forEach(news => {
+                // Validate URL is safe (http/https only)
+                if (!this.isValidUrl(news.link)) {
+                    console.warn('Invalid URL detected in news item, skipping');
+                    return;
+                }
+                
                 const newsItem = document.createElement('div');
                 newsItem.className = 'news-item';
                 
@@ -562,6 +568,20 @@ class Globe {
                 newsItem.appendChild(link);
                 newsList.appendChild(newsItem);
             });
+        }
+    }
+    
+    /**
+     * Validate URL is safe (http/https only)
+     * @param {string} url - URL to validate
+     * @returns {boolean} True if valid and safe
+     */
+    isValidUrl(url) {
+        try {
+            const urlObj = new URL(url);
+            return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+        } catch {
+            return false;
         }
     }
     
