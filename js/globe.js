@@ -528,17 +528,32 @@ class Globe {
         } else {
             newsEmpty.style.display = 'none';
             
-            // Build news list HTML
-            const newsHTML = cityNews.map(news => `
-                <div class="news-item">
-                    <a href="${news.link}" target="_blank" rel="noopener noreferrer">
-                        <div class="news-title">${news.title}</div>
-                        <div class="news-date">${this.formatNewsDate(news.pubDate)}</div>
-                    </a>
-                </div>
-            `).join('');
+            // Clear previous news
+            newsList.innerHTML = '';
             
-            newsList.innerHTML = newsHTML;
+            // Build news items with safe DOM manipulation
+            cityNews.forEach(news => {
+                const newsItem = document.createElement('div');
+                newsItem.className = 'news-item';
+                
+                const link = document.createElement('a');
+                link.href = news.link;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'news-title';
+                titleDiv.textContent = news.title; // Use textContent to prevent XSS
+                
+                const dateDiv = document.createElement('div');
+                dateDiv.className = 'news-date';
+                dateDiv.textContent = this.formatNewsDate(news.pubDate);
+                
+                link.appendChild(titleDiv);
+                link.appendChild(dateDiv);
+                newsItem.appendChild(link);
+                newsList.appendChild(newsItem);
+            });
         }
     }
     

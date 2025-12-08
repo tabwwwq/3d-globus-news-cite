@@ -6,6 +6,10 @@
 class NewsManager {
     constructor() {
         // BBC World News RSS feed via rss2json.com proxy (to bypass CORS)
+        // Note: Using third-party proxy service. For production, consider:
+        // - Implementing own CORS proxy on backend
+        // - Using official BBC News API with proper authentication
+        // - Caching news on server-side to reduce API dependency
         this.RSS_PROXY_URL = 'https://api.rss2json.com/v1/api.json?rss_url=https://feeds.bbci.co.uk/news/world/rss.xml';
         
         // News storage: { cityName: [news items] }
@@ -18,6 +22,9 @@ class NewsManager {
         // Loading state
         this.isLoading = false;
         this.fetchError = null;
+        
+        // Auto-refresh interval ID for cleanup
+        this.refreshIntervalId = null;
         
         // City names from LOCATIONS for matching
         this.cityNames = [];
@@ -153,14 +160,14 @@ class NewsManager {
     }
     
     /**
-     * Strip HTML tags from text
+     * Strip HTML tags from text (XSS-safe)
      * @param {string} html - HTML string
      * @returns {string} Plain text
      */
     stripHtmlTags(html) {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = html;
-        return tmp.textContent || tmp.innerText || '';
+        // Use DOMParser for safe HTML parsing
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        return doc.body.textContent || '';
     }
     
     /**
@@ -188,13 +195,23 @@ class NewsManager {
         // Fetch immediately
         this.fetchNews();
         
-        // Set up interval for automatic refresh
-        setInterval(() => {
+        // Set up interval for automatic refresh and store ID for cleanup
+        this.refreshIntervalId = setInterval(() => {
             if (this.needsRefresh()) {
                 console.log('Auto-refreshing news...');
                 this.fetchNews();
             }
         }, 60000); // Check every minute
+    }
+    
+    /**
+     * Stop automatic news refresh and cleanup
+     */
+    stopAutoRefresh() {
+        if (this.refreshIntervalId) {
+            clearInterval(this.refreshIntervalId);
+            this.refreshIntervalId = null;
+        }
     }
     
     /**
